@@ -174,6 +174,9 @@ func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest,
 						"volume": schema.StringAttribute{
 							Required:            true,
 							MarkdownDescription: "Name or ID of volume",
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
 						},
 					},
 				},

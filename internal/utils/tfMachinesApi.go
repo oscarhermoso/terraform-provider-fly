@@ -3,11 +3,9 @@ package utils
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
 	"github.com/fly-apps/terraform-provider-fly/pkg/apiv1"
-	hreq "github.com/imroc/req/v3"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -32,16 +30,12 @@ func (l *tfLogger) Warnf(format string, v ...interface{}) {
 }
 
 func NewMachineApi(ctx context.Context, state *providerstate.State) *apiv1.MachineAPI {
-	httpClient := hreq.C()
-	httpClient.SetLogger(&tfLogger{ctx: ctx})
-	httpClient.EnableDebugLog()
-
+	out := apiv1.NewMachineAPI(state.RestBaseUrl, state.Token)
+	out.HttpClient.SetLogger(&tfLogger{ctx: ctx})
+	out.HttpClient.EnableDebugLog()
 	if state.EnableTracing {
-		httpClient.SetCommonHeader("Fly-Force-Trace", "true")
-		httpClient = hreq.C().DevMode()
+		out.HttpClient.SetCommonHeader("Fly-Force-Trace", "true")
+		out.HttpClient.DevMode()
 	}
-
-	httpClient.SetCommonHeader("Authorization", "Bearer "+state.Token)
-	httpClient.SetTimeout(2 * time.Minute)
-	return apiv1.NewMachineAPI(httpClient, state.RestBaseUrl)
+	return out
 }

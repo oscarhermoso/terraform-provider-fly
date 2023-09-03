@@ -531,6 +531,10 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	tfservices := ServicesToTfServices(updatedMachine.Config.Services)
 
+	if len(tfservices) == 0 {
+		tfservices = nil
+	}
+
 	state = flyMachineResourceData{
 		Name:       types.StringValue(updatedMachine.Name),
 		Region:     types.StringValue(updatedMachine.Region),

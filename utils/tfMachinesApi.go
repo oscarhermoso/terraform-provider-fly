@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
-	"github.com/fly-apps/terraform-provider-fly/pkg/apiv1"
+	machineapi "github.com/andrewbaxter/terraform-provider-fly/machineapi"
+	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -29,8 +29,8 @@ func (l *tfLogger) Warnf(format string, v ...interface{}) {
 	tflog.Warn(l.ctx, fmt.Sprintf(format, v...))
 }
 
-func NewMachineApi(ctx context.Context, state *providerstate.State) *apiv1.MachineAPI {
-	out := apiv1.NewMachineAPI(state.RestBaseUrl, state.Token)
+func NewMachineApi(ctx context.Context, state *providerstate.State) *machineapi.MachineAPI {
+	out := machineapi.NewMachineAPI(state.RestBaseUrl, state.Token)
 	out.HttpClient.SetLogger(&tfLogger{ctx: ctx})
 	out.HttpClient.EnableDebugLog()
 	if state.EnableTracing {

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/fly-apps/terraform-provider-fly/graphql"
-	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
-	"github.com/fly-apps/terraform-provider-fly/internal/utils"
+	"github.com/andrewbaxter/terraform-provider-fly/graphql"
+	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
+	"github.com/andrewbaxter/terraform-provider-fly/utils"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"

@@ -5,7 +5,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/fly-apps/terraform-provider-fly/internal/provider"
+	"github.com/andrewbaxter/terraform-provider-fly/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 

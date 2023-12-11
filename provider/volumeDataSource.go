@@ -3,8 +3,8 @@ package provider
 import (
 	"context"
 
-	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
-	"github.com/fly-apps/terraform-provider-fly/internal/utils"
+	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
+	"github.com/andrewbaxter/terraform-provider-fly/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"

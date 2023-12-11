@@ -9,7 +9,10 @@ import (
 
 	"github.com/Khan/genqlient/graphql"
 	hreq "github.com/imroc/req/v3"
+<<<<<<< HEAD
 	"github.com/superfly/flyctl/api"
+=======
+>>>>>>> pr3/add-auto-destroy
 )
 
 var NonceHeader = "fly-machine-lease-nonce"

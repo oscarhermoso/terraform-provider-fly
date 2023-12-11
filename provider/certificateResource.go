@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fly-apps/terraform-provider-fly/graphql"
-	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
+	"github.com/andrewbaxter/terraform-provider-fly/graphql"
+	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"

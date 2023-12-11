@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/fly-apps/terraform-provider-fly/graphql"
-	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
+	"github.com/andrewbaxter/terraform-provider-fly/graphql"
+	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"

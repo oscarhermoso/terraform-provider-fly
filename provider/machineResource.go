@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
-	"github.com/fly-apps/terraform-provider-fly/internal/utils"
-	"github.com/fly-apps/terraform-provider-fly/pkg/apiv1"
+	"github.com/andrewbaxter/terraform-provider-fly/machineapi"
+	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
+	"github.com/andrewbaxter/terraform-provider-fly/utils"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -217,22 +217,22 @@ func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest,
 	}
 }
 
-func TfServicesToServices(input []TfService) []apiv1.Service {
-	services := make([]apiv1.Service, 0)
+func TfServicesToServices(input []TfService) []machineapi.Service {
+	services := make([]machineapi.Service, 0)
 	for _, s := range input {
-		var ports []apiv1.Port
+		var ports []machineapi.Port
 		for _, j := range s.Ports {
 			var handlers []string
 			for _, k := range j.Handlers {
 				handlers = append(handlers, k.ValueString())
 			}
-			ports = append(ports, apiv1.Port{
+			ports = append(ports, machineapi.Port{
 				Port:       j.Port.ValueInt64(),
 				Handlers:   handlers,
 				ForceHttps: j.ForceHttps,
 			})
 		}
-		services = append(services, apiv1.Service{
+		services = append(services, machineapi.Service{
 			Ports:        ports,
 			Protocol:     s.Protocol.ValueString(),
 			InternalPort: s.InternalPort.ValueInt64(),
@@ -241,7 +241,7 @@ func TfServicesToServices(input []TfService) []apiv1.Service {
 	return services
 }
 
-func ServicesToTfServices(input []apiv1.Service) []TfService {
+func ServicesToTfServices(input []machineapi.Service) []TfService {
 	tfservices := make([]TfService, 0)
 	for _, s := range input {
 		var tfports []TfPort
@@ -275,13 +275,13 @@ func (r *flyMachineResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	services := TfServicesToServices(data.Services)
-	createReq := apiv1.MachineCreateOrUpdateRequest{
+	createReq := machineapi.MachineCreateOrUpdateRequest{
 		Name:   data.Name.ValueString(),
 		Region: data.Region.ValueString(),
-		Config: apiv1.MachineConfig{
+		Config: machineapi.MachineConfig{
 			Image:    data.Image.ValueString(),
 			Services: services,
-			Init: apiv1.InitConfig{
+			Init: machineapi.InitConfig{
 				Cmd:        data.Cmd,
 				Entrypoint: data.Entrypoint,
 				Exec:       data.Exec,
@@ -306,9 +306,9 @@ func (r *flyMachineResource) Create(ctx context.Context, req resource.CreateRequ
 		createReq.Config.Env = env
 	}
 	if len(data.Mounts) > 0 {
-		var mounts []apiv1.MachineMount
+		var mounts []machineapi.MachineMount
 		for _, m := range data.Mounts {
-			mounts = append(mounts, apiv1.MachineMount{
+			mounts = append(mounts, machineapi.MachineMount{
 				Encrypted: m.Encrypted.ValueBool(),
 				Path:      m.Path.ValueString(),
 				SizeGb:    int(m.SizeGb.ValueInt64()),
@@ -320,7 +320,7 @@ func (r *flyMachineResource) Create(ctx context.Context, req resource.CreateRequ
 
 	machineApi := utils.NewMachineApi(ctx, r.state)
 
-	var newMachine apiv1.MachineResponse
+	var newMachine machineapi.MachineResponse
 	err := machineApi.CreateMachine(createReq, data.App.ValueString(), &newMachine)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create machine", err.Error())
@@ -391,7 +391,7 @@ func (r *flyMachineResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	machineApi := utils.NewMachineApi(ctx, r.state)
 
-	var machine apiv1.MachineResponse
+	var machine machineapi.MachineResponse
 
 	_, err := machineApi.ReadMachine(data.App.ValueString(), data.Id.ValueString(), &machine)
 	if err != nil {
@@ -475,13 +475,13 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	services := TfServicesToServices(plan.Services)
 
-	updateReq := apiv1.MachineCreateOrUpdateRequest{
+	updateReq := machineapi.MachineCreateOrUpdateRequest{
 		Name:   plan.Name.ValueString(),
 		Region: state.Region.ValueString(),
-		Config: apiv1.MachineConfig{
+		Config: machineapi.MachineConfig{
 			Image:    plan.Image.ValueString(),
 			Services: services,
-			Init: apiv1.InitConfig{
+			Init: machineapi.InitConfig{
 				Cmd:        plan.Cmd,
 				Entrypoint: plan.Entrypoint,
 				Exec:       plan.Exec,
@@ -511,9 +511,9 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	if len(plan.Mounts) > 0 {
-		var mounts []apiv1.MachineMount
+		var mounts []machineapi.MachineMount
 		for _, m := range plan.Mounts {
-			mounts = append(mounts, apiv1.MachineMount{
+			mounts = append(mounts, machineapi.MachineMount{
 				Encrypted: m.Encrypted.ValueBool(),
 				Path:      m.Path.ValueString(),
 				SizeGb:    int(m.SizeGb.ValueInt64()),
@@ -525,7 +525,7 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	machineApi := utils.NewMachineApi(ctx, r.state)
 
-	var updatedMachine apiv1.MachineResponse
+	var updatedMachine machineapi.MachineResponse
 
 	err := machineApi.UpdateMachine(updateReq, state.App.ValueString(), state.Id.ValueString(), &updatedMachine)
 	if err != nil {

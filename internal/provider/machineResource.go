@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -41,8 +42,9 @@ func (r *flyMachineResource) Configure(_ context.Context, req resource.Configure
 }
 
 type TfPort struct {
-	Port     types.Int64    `tfsdk:"port"`
-	Handlers []types.String `tfsdk:"handlers"`
+	Port       types.Int64    `tfsdk:"port"`
+	Handlers   []types.String `tfsdk:"handlers"`
+	ForceHttps bool           `tfsdk:"force_https"`
 }
 
 type TfService struct {
@@ -184,6 +186,12 @@ func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest,
 										Optional:            true,
 										ElementType:         types.StringType,
 									},
+									"force_https": schema.BoolAttribute{
+										MarkdownDescription: "Automatically redirect to HTTPS on \"http\" handler",
+										Computed:            true,
+										Optional:            true,
+										Default:             booldefault.StaticBool(false),
+									},
 								},
 							},
 						},
@@ -212,8 +220,9 @@ func TfServicesToServices(input []TfService) []apiv1.Service {
 				handlers = append(handlers, k.ValueString())
 			}
 			ports = append(ports, apiv1.Port{
-				Port:     j.Port.ValueInt64(),
-				Handlers: handlers,
+				Port:       j.Port.ValueInt64(),
+				Handlers:   handlers,
+				ForceHttps: j.ForceHttps,
 			})
 		}
 		services = append(services, apiv1.Service{
@@ -235,8 +244,9 @@ func ServicesToTfServices(input []apiv1.Service) []TfService {
 				handlers = append(handlers, types.StringValue(k))
 			}
 			tfports = append(tfports, TfPort{
-				Port:     types.Int64Value(j.Port),
-				Handlers: handlers,
+				Port:       types.Int64Value(j.Port),
+				Handlers:   handlers,
+				ForceHttps: j.ForceHttps,
 			})
 		}
 		tfservices = append(tfservices, TfService{

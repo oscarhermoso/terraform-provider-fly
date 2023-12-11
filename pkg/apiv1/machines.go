@@ -46,12 +46,13 @@ type InitConfig struct {
 }
 
 type MachineConfig struct {
-	Image    string            `json:"image"`
-	Env      map[string]string `json:"env"`
-	Init     InitConfig        `json:"init,omitempty"`
-	Mounts   []MachineMount    `json:"mounts,omitempty"`
-	Services []Service         `json:"services"`
-	Guest    GuestConfig       `json:"guest,omitempty"`
+	Image       string            `json:"image"`
+	Env         map[string]string `json:"env"`
+	Init        InitConfig        `json:"init,omitempty"`
+	Mounts      []MachineMount    `json:"mounts,omitempty"`
+	Services    []Service         `json:"services"`
+	Guest       GuestConfig       `json:"guest,omitempty"`
+	AutoDestroy bool              `json:"auto_destroy"`
 }
 
 type GuestConfig struct {
@@ -93,6 +94,7 @@ type MachineResponse struct {
 			Cpus     int    `json:"cpus"`
 			MemoryMb int    `json:"memory_mb"`
 		} `json:"guest"`
+		AutoDestroy bool `json:"auto_destroy"`
 	} `json:"config"`
 	ImageRef struct {
 		Registry   string `json:"registry"`

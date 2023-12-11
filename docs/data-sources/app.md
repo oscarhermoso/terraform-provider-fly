@@ -28,6 +28,7 @@ description: |-
 - `hostname` (String)
 - `id` (String) The ID of this resource.
 - `ipaddresses` (List of String)
+- `sharedipaddress` (String)
 - `status` (String)
 
 

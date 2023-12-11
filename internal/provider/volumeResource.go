@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
@@ -54,12 +53,12 @@ func (r *flyVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 		MarkdownDescription: "Fly volume resource",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "ID of volume",
+				MarkdownDescription: ID_DESC,
 				Computed:            true,
 				// Optional:            true,
 			},
 			"app": schema.StringAttribute{
-				MarkdownDescription: "Name of app to attach to",
+				MarkdownDescription: APP_DESC,
 				Required:            true,
 			},
 			"size": schema.Int64Attribute{
@@ -67,18 +66,22 @@ func (r *flyVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "name",
+				MarkdownDescription: NAME_DESC,
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^[a-z0-9-]+$`),
-						"only allows alphanumeric characters and dashes",
+						NAME_REGEX,
+						fmt.Sprintf("Must match `%s`", NAME_REGEX_RAW),
 					),
 				},
 			},
 			"region": schema.StringAttribute{
-				MarkdownDescription: "region",
+				MarkdownDescription: REGION_DESC,
 				Required:            true,
+			},
+			"encrypted": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
 			},
 		},
 	}

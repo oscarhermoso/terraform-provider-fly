@@ -2,15 +2,12 @@ package provider
 
 import (
 	"context"
-	"regexp"
 
 	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
 	"github.com/fly-apps/terraform-provider-fly/internal/utils"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -51,17 +48,11 @@ func (d *volumeDataSourceType) Schema(_ context.Context, _ datasource.SchemaRequ
 		MarkdownDescription: "Fly volume resource",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "ID of volume",
+				MarkdownDescription: ID_DESC,
 				Required:            true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^vol_[a-z0-9]+$`),
-						"must start with \"vol_\"",
-					),
-				},
 			},
 			"app": schema.StringAttribute{
-				MarkdownDescription: "Name of app attached to",
+				MarkdownDescription: APP_DESC,
 				Required:            true,
 			},
 			"size": schema.Int64Attribute{
@@ -69,12 +60,15 @@ func (d *volumeDataSourceType) Schema(_ context.Context, _ datasource.SchemaRequ
 				Computed:            true,
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "name",
+				MarkdownDescription: NAME_DESC,
 				Computed:            true,
 			},
 			"region": schema.StringAttribute{
-				MarkdownDescription: "region",
+				MarkdownDescription: REGION_DESC,
 				Computed:            true,
+			},
+			"encrypted": schema.BoolAttribute{
+				Computed: true,
 			},
 		},
 	}

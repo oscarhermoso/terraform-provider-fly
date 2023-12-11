@@ -53,15 +53,14 @@ func (r *flyIpResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 		MarkdownDescription: "Fly ip resource",
 		Attributes: map[string]schema.Attribute{
 			"address": schema.StringAttribute{
-				MarkdownDescription: "IP address",
-				Computed:            true,
+				Computed: true,
 			},
 			"app": schema.StringAttribute{
-				MarkdownDescription: "Name of app to attach to",
+				MarkdownDescription: APP_DESC,
 				Required:            true,
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "ID of address",
+				MarkdownDescription: ID_DESC,
 				Computed:            true,
 			},
 			"type": schema.StringAttribute{
@@ -69,7 +68,7 @@ func (r *flyIpResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Required:            true,
 			},
 			"region": schema.StringAttribute{
-				MarkdownDescription: "region",
+				MarkdownDescription: REGION_DESC,
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("global"),

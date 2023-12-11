@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"github.com/fly-apps/terraform-provider-fly/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -43,7 +41,7 @@ func (p *flyProvider) Configure(ctx context.Context, req provider.ConfigureReque
 
 	var token string
 	if data.FlyToken.IsUnknown() {
-		resp.Diagnostics.AddWarning(
+		resp.Diagnostics.AddError(
 			"Unable to create client",
 			"Cannot use unknown value as token",
 		)
@@ -134,33 +132,4 @@ func New() func() provider.Provider {
 	return func() provider.Provider {
 		return &flyProvider{}
 	}
-}
-
-// convertProviderType is a helper function for NewResource and NewDataSource
-// implementations to associate the concrete provider type. Alternatively,
-// this helper can be skipped and the provider type can be directly type
-// asserted (e.g. provider: in.(*provider)), however using this can prevent
-// potential panics.
-func convertProviderType(in provider.Provider) (flyProvider, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	p, ok := in.(*flyProvider)
-
-	if !ok {
-		diags.AddError(
-			"Unexpected Provider Instance Type",
-			fmt.Sprintf("While creating the data source or resource, an unexpected provider type (%T) was received. This is always a bug in the provider code and should be reported to the provider developers.", p),
-		)
-		return flyProvider{}, diags
-	}
-
-	if p == nil {
-		diags.AddError(
-			"Unexpected Provider Instance Type",
-			"While creating the data source or resource, an unexpected empty provider instance was received. This is always a bug in the provider code and should be reported to the provider developers.",
-		)
-		return flyProvider{}, diags
-	}
-
-	return *p, diags
 }

@@ -51,15 +51,14 @@ func (d *ipDataSourceType) Schema(_ context.Context, _ datasource.SchemaRequest,
 		MarkdownDescription: "Fly ip data source",
 		Attributes: map[string]schema.Attribute{
 			"address": schema.StringAttribute{
-				MarkdownDescription: "IP address",
-				Required:            true,
+				Required: true,
 			},
 			"app": schema.StringAttribute{
-				MarkdownDescription: "Name of app attached to",
+				MarkdownDescription: APP_DESC,
 				Required:            true,
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "ID of address",
+				MarkdownDescription: ID_DESC,
 				Computed:            true,
 			},
 			"type": schema.StringAttribute{
@@ -67,7 +66,7 @@ func (d *ipDataSourceType) Schema(_ context.Context, _ datasource.SchemaRequest,
 				Computed:            true,
 			},
 			"region": schema.StringAttribute{
-				MarkdownDescription: "region",
+				MarkdownDescription: REGION_DESC,
 				Computed:            true,
 			},
 		},

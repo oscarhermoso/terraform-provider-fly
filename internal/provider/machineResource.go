@@ -79,10 +79,9 @@ type TfMachineMount struct {
 
 func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Fly machine resource",
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "machine name",
+				MarkdownDescription: NAME_DESC,
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -90,90 +89,75 @@ func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"region": schema.StringAttribute{
-				MarkdownDescription: "machine region",
+				MarkdownDescription: REGION_DESC,
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "machine id",
+				MarkdownDescription: ID_DESC,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"app": schema.StringAttribute{
-				MarkdownDescription: "fly app",
+				MarkdownDescription: APP_DESC,
 				Required:            true,
 			},
 			"privateip": schema.StringAttribute{
-				MarkdownDescription: "Private IP",
-				Computed:            true,
+				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"cmd": schema.ListAttribute{
-				MarkdownDescription: "cmd",
-				Optional:            true,
-				ElementType:         types.StringType,
+				Optional:    true,
+				ElementType: types.StringType,
 			},
 			"entrypoint": schema.ListAttribute{
-				MarkdownDescription: "image entrypoint",
-				Optional:            true,
-				ElementType:         types.StringType,
+				Optional:    true,
+				ElementType: types.StringType,
 			},
 			"exec": schema.ListAttribute{
-				MarkdownDescription: "exec command",
-				Optional:            true,
-				ElementType:         types.StringType,
+				Optional:    true,
+				ElementType: types.StringType,
 			},
 			"image": schema.StringAttribute{
-				MarkdownDescription: "docker image",
+				MarkdownDescription: "Protocol-less docker image, ex: `registry.fly.io/myapp:mytag`",
 				Required:            true,
 			},
 			"cputype": schema.StringAttribute{
-				MarkdownDescription: "cpu type",
+				MarkdownDescription: "Which machine flavor, ex: `shared`",
 				Computed:            true,
 				Optional:            true,
 			},
 			"cpus": schema.Int64Attribute{
-				MarkdownDescription: "cpu count",
-				Computed:            true,
-				Optional:            true,
+				Computed: true,
+				Optional: true,
 			},
 			"memorymb": schema.Int64Attribute{
-				MarkdownDescription: "memory mb",
-				Computed:            true,
-				Optional:            true,
+				Computed: true,
+				Optional: true,
 			},
 			"env": schema.MapAttribute{
-				MarkdownDescription: "Optional environment variables, keys and values must be strings",
+				MarkdownDescription: "Keys and values must be strings",
 				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"mounts": schema.ListNestedAttribute{
-				MarkdownDescription: "Volume mounts",
-				Optional:            true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"encrypted": schema.BoolAttribute{
-							Optional: true,
-							Computed: true,
-						},
 						"path": schema.StringAttribute{
 							Required:            true,
-							MarkdownDescription: "Path for volume to be mounted on vm",
-						},
-						"size_gb": schema.Int64Attribute{
-							Optional: true,
-							Computed: true,
+							MarkdownDescription: "Path for volume to be mounted on vm, ex: `/data`",
 						},
 						"volume": schema.StringAttribute{
 							Required:            true,
-							MarkdownDescription: "Name or ID of volume",
+							MarkdownDescription: "ID of volume",
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.RequiresReplace(),
 							},
@@ -187,16 +171,16 @@ func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"ports": schema.ListNestedAttribute{
-							MarkdownDescription: "External ports and handlers",
+							MarkdownDescription: "How the port is exposed",
 							Required:            true,
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
 									"port": schema.Int64Attribute{
-										MarkdownDescription: "External port",
+										MarkdownDescription: "Mapped external port number",
 										Required:            true,
 									},
 									"handlers": schema.ListAttribute{
-										MarkdownDescription: "How the edge should process requests",
+										MarkdownDescription: "How the edge should process requests; ex empty, or `tls` to attach app's certificate",
 										Optional:            true,
 										ElementType:         types.StringType,
 									},
@@ -204,11 +188,11 @@ func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest,
 							},
 						},
 						"protocol": schema.StringAttribute{
-							MarkdownDescription: "network protocol",
+							MarkdownDescription: "`udp` or `tcp`",
 							Required:            true,
 						},
 						"internal_port": schema.Int64Attribute{
-							MarkdownDescription: "Port application listens on internally",
+							MarkdownDescription: "Port the machine listens on",
 							Required:            true,
 						},
 					},

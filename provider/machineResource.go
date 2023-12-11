@@ -44,7 +44,7 @@ func (r *flyMachineResource) Configure(_ context.Context, req resource.Configure
 type TfPort struct {
 	Port       types.Int64    `tfsdk:"port"`
 	Handlers   []types.String `tfsdk:"handlers"`
-	ForceHttps bool           `tfsdk:"force_https"`
+	ForceHttps types.Bool     `tfsdk:"force_https"`
 }
 
 type TfService struct {
@@ -67,17 +67,15 @@ type flyMachineResourceData struct {
 	Cmd         []string     `tfsdk:"cmd"`
 	Entrypoint  []string     `tfsdk:"entrypoint"`
 	Exec        []string     `tfsdk:"exec"`
-	AutoDestroy bool         `tfsdk:"auto_destroy"`
+	AutoDestroy types.Bool   `tfsdk:"auto_destroy"`
 
 	Mounts   []TfMachineMount `tfsdk:"mounts"`
 	Services []TfService      `tfsdk:"services"`
 }
 
 type TfMachineMount struct {
-	Encrypted types.Bool   `tfsdk:"encrypted"`
-	Path      types.String `tfsdk:"path"`
-	SizeGb    types.Int64  `tfsdk:"size_gb"`
-	Volume    types.String `tfsdk:"volume"`
+	Path   types.String `tfsdk:"path"`
+	Volume types.String `tfsdk:"volume"`
 }
 
 func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -175,8 +173,7 @@ func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"services": schema.ListNestedAttribute{
-				MarkdownDescription: "services",
-				Optional:            true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"ports": schema.ListNestedAttribute{
@@ -229,7 +226,7 @@ func TfServicesToServices(input []TfService) []machineapi.Service {
 			ports = append(ports, machineapi.Port{
 				Port:       j.Port.ValueInt64(),
 				Handlers:   handlers,
-				ForceHttps: j.ForceHttps,
+				ForceHttps: j.ForceHttps.ValueBool(),
 			})
 		}
 		services = append(services, machineapi.Service{
@@ -253,7 +250,7 @@ func ServicesToTfServices(input []machineapi.Service) []TfService {
 			tfports = append(tfports, TfPort{
 				Port:       types.Int64Value(j.Port),
 				Handlers:   handlers,
-				ForceHttps: j.ForceHttps,
+				ForceHttps: types.BoolValue(j.ForceHttps),
 			})
 		}
 		tfservices = append(tfservices, TfService{
@@ -286,7 +283,7 @@ func (r *flyMachineResource) Create(ctx context.Context, req resource.CreateRequ
 				Entrypoint: data.Entrypoint,
 				Exec:       data.Exec,
 			},
-			AutoDestroy: data.AutoDestroy,
+			AutoDestroy: data.AutoDestroy.ValueBool(),
 		},
 	}
 
@@ -309,10 +306,8 @@ func (r *flyMachineResource) Create(ctx context.Context, req resource.CreateRequ
 		var mounts []machineapi.MachineMount
 		for _, m := range data.Mounts {
 			mounts = append(mounts, machineapi.MachineMount{
-				Encrypted: m.Encrypted.ValueBool(),
-				Path:      m.Path.ValueString(),
-				SizeGb:    int(m.SizeGb.ValueInt64()),
-				Volume:    m.Volume.ValueString(),
+				Path:   m.Path.ValueString(),
+				Volume: m.Volume.ValueString(),
 			})
 		}
 		createReq.Config.Mounts = mounts
@@ -354,17 +349,15 @@ func (r *flyMachineResource) Create(ctx context.Context, req resource.CreateRequ
 		Exec:        newMachine.Config.Init.Exec,
 		Env:         env,
 		Services:    tfservices,
-		AutoDestroy: newMachine.Config.AutoDestroy,
+		AutoDestroy: types.BoolValue(newMachine.Config.AutoDestroy),
 	}
 
 	if len(newMachine.Config.Mounts) > 0 {
 		var tfmounts []TfMachineMount
 		for _, m := range newMachine.Config.Mounts {
 			tfmounts = append(tfmounts, TfMachineMount{
-				Encrypted: types.BoolValue(m.Encrypted),
-				Path:      types.StringValue(m.Path),
-				SizeGb:    types.Int64Value(int64(m.SizeGb)),
-				Volume:    types.StringValue(m.Volume),
+				Path:   types.StringValue(m.Path),
+				Volume: types.StringValue(m.Volume),
 			})
 		}
 		data.Mounts = tfmounts
@@ -424,17 +417,15 @@ func (r *flyMachineResource) Read(ctx context.Context, req resource.ReadRequest,
 		Exec:        machine.Config.Init.Exec,
 		Env:         env,
 		Services:    tfservices,
-		AutoDestroy: machine.Config.AutoDestroy,
+		AutoDestroy: types.BoolValue(machine.Config.AutoDestroy),
 	}
 
 	if len(machine.Config.Mounts) > 0 {
 		var tfmounts []TfMachineMount
 		for _, m := range machine.Config.Mounts {
 			tfmounts = append(tfmounts, TfMachineMount{
-				Encrypted: types.BoolValue(m.Encrypted),
-				Path:      types.StringValue(m.Path),
-				SizeGb:    types.Int64Value(int64(m.SizeGb)),
-				Volume:    types.StringValue(m.Volume),
+				Path:   types.StringValue(m.Path),
+				Volume: types.StringValue(m.Volume),
 			})
 		}
 		data.Mounts = tfmounts
@@ -486,7 +477,7 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 				Entrypoint: plan.Entrypoint,
 				Exec:       plan.Exec,
 			},
-			AutoDestroy: state.AutoDestroy,
+			AutoDestroy: state.AutoDestroy.ValueBool(),
 		},
 	}
 
@@ -514,10 +505,8 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 		var mounts []machineapi.MachineMount
 		for _, m := range plan.Mounts {
 			mounts = append(mounts, machineapi.MachineMount{
-				Encrypted: m.Encrypted.ValueBool(),
-				Path:      m.Path.ValueString(),
-				SizeGb:    int(m.SizeGb.ValueInt64()),
-				Volume:    m.Volume.ValueString(),
+				Path:   m.Path.ValueString(),
+				Volume: m.Volume.ValueString(),
 			})
 		}
 		updateReq.Config.Mounts = mounts
@@ -558,17 +547,15 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 		Exec:        updatedMachine.Config.Init.Exec,
 		Env:         env,
 		Services:    tfservices,
-		AutoDestroy: updatedMachine.Config.AutoDestroy,
+		AutoDestroy: types.BoolValue(updatedMachine.Config.AutoDestroy),
 	}
 
 	if len(updatedMachine.Config.Mounts) > 0 {
 		var tfmounts []TfMachineMount
 		for _, m := range updatedMachine.Config.Mounts {
 			tfmounts = append(tfmounts, TfMachineMount{
-				Encrypted: types.BoolValue(m.Encrypted),
-				Path:      types.StringValue(m.Path),
-				SizeGb:    types.Int64Value(int64(m.SizeGb)),
-				Volume:    types.StringValue(m.Volume),
+				Path:   types.StringValue(m.Path),
+				Volume: types.StringValue(m.Volume),
 			})
 		}
 		state.Mounts = tfmounts

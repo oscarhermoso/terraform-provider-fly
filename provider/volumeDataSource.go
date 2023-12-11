@@ -36,16 +36,16 @@ func (d *volumeDataSourceType) Configure(_ context.Context, req datasource.Confi
 
 // Matches Schema
 type volumeDataSourceOutput struct {
-	Id     types.String `tfsdk:"id"`
-	Name   types.String `tfsdk:"name"`
-	Size   types.Int64  `tfsdk:"size"`
-	Appid  types.String `tfsdk:"app"`
-	Region types.String `tfsdk:"region"`
+	Id        types.String `tfsdk:"id"`
+	Name      types.String `tfsdk:"name"`
+	Size      types.Int64  `tfsdk:"size"`
+	Appid     types.String `tfsdk:"app"`
+	Region    types.String `tfsdk:"region"`
+	Encrypted types.Bool   `tfsdk:"encrypted"`
 }
 
 func (d *volumeDataSourceType) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Fly volume resource",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				MarkdownDescription: ID_DESC,
@@ -81,11 +81,6 @@ func (d *volumeDataSourceType) Read(ctx context.Context, req datasource.ReadRequ
 	resp.Diagnostics.Append(diags...)
 
 	id := data.Id.ValueString()
-	// New flaps based volumes don't have this prefix I'm pretty sure
-	if id[:4] == "vol_" {
-		// strip leading vol_ off name
-		id = id[4:]
-	}
 	app := data.Appid.ValueString()
 
 	machineApi := utils.NewMachineApi(ctx, d.state)
@@ -96,11 +91,12 @@ func (d *volumeDataSourceType) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	data = volumeDataSourceOutput{
-		Id:     types.StringValue(query.ID),
-		Name:   types.StringValue(query.Name),
-		Size:   types.Int64Value(int64(query.SizeGb)),
-		Appid:  types.StringValue(data.Appid.ValueString()),
-		Region: types.StringValue(query.Region),
+		Id:        types.StringValue(query.ID),
+		Name:      types.StringValue(query.Name),
+		Size:      types.Int64Value(int64(query.SizeGb)),
+		Appid:     types.StringValue(data.Appid.ValueString()),
+		Region:    types.StringValue(query.Region),
+		Encrypted: types.BoolValue(query.Encrypted),
 	}
 
 	if resp.Diagnostics.HasError() {

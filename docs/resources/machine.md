@@ -33,7 +33,7 @@ description: |-
 - `memorymb` (Number)
 - `mounts` (Attributes List) (see [below for nested schema](#nestedatt--mounts))
 - `name` (String) A user-provided identifier, matching regexp `^[a-z0-9-]+$`
-- `services` (Attributes List) services (see [below for nested schema](#nestedatt--services))
+- `services` (Attributes List) (see [below for nested schema](#nestedatt--services))
 
 ### Read-Only
 

@@ -11,7 +11,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -58,20 +60,29 @@ func (r *flyIpResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			"app": schema.StringAttribute{
 				MarkdownDescription: APP_DESC,
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"id": schema.StringAttribute{
 				MarkdownDescription: ID_DESC,
 				Computed:            true,
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "v4 or v6",
+				MarkdownDescription: "`v4` or `v6`",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"region": schema.StringAttribute{
 				MarkdownDescription: REGION_DESC,
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("global"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 		},
 	}

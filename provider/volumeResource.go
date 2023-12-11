@@ -41,16 +41,16 @@ func (r *flyVolumeResource) Configure(_ context.Context, req resource.ConfigureR
 }
 
 type flyVolumeResourceData struct {
-	Id     types.String `tfsdk:"id"`
-	Name   types.String `tfsdk:"name"`
-	Size   types.Int64  `tfsdk:"size"`
-	Appid  types.String `tfsdk:"app"`
-	Region types.String `tfsdk:"region"`
+	Id        types.String `tfsdk:"id"`
+	Name      types.String `tfsdk:"name"`
+	Size      types.Int64  `tfsdk:"size"`
+	Appid     types.String `tfsdk:"app"`
+	Region    types.String `tfsdk:"region"`
+	Encrypted types.Bool   `tfsdk:"encrypted"`
 }
 
 func (r *flyVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Fly volume resource",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				MarkdownDescription: ID_DESC,
@@ -103,11 +103,12 @@ func (r *flyVolumeResource) Create(ctx context.Context, req resource.CreateReque
 	tflog.Info(ctx, fmt.Sprintf("%+v", q))
 
 	data = flyVolumeResourceData{
-		Id:     types.StringValue(q.ID),
-		Name:   types.StringValue(q.Name),
-		Size:   types.Int64Value(int64(q.SizeGb)),
-		Appid:  types.StringValue(data.Appid.ValueString()),
-		Region: types.StringValue(q.Region),
+		Id:        types.StringValue(q.ID),
+		Name:      types.StringValue(q.Name),
+		Size:      types.Int64Value(int64(q.SizeGb)),
+		Appid:     types.StringValue(data.Appid.ValueString()),
+		Region:    types.StringValue(q.Region),
+		Encrypted: types.BoolValue(q.Encrypted),
 	}
 
 	tflog.Info(ctx, fmt.Sprintf("%+v", data))
@@ -131,11 +132,6 @@ func (r *flyVolumeResource) Read(ctx context.Context, req resource.ReadRequest, 
 		resp.Diagnostics.AddError("Failed to read volume", "id is empty")
 		return
 	}
-	// New flaps based volumes don't have this prefix I'm pretty sure
-	if id[:4] == "vol_" {
-		// strip leading vol_ off name
-		id = id[4:]
-	}
 	app := data.Appid.ValueString()
 
 	machineApi := utils.NewMachineApi(ctx, r.state)
@@ -146,11 +142,12 @@ func (r *flyVolumeResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	data = flyVolumeResourceData{
-		Id:     types.StringValue(query.ID),
-		Name:   types.StringValue(query.Name),
-		Size:   types.Int64Value(int64(query.SizeGb)),
-		Appid:  types.StringValue(data.Appid.ValueString()),
-		Region: types.StringValue(query.Region),
+		Id:        types.StringValue(query.ID),
+		Name:      types.StringValue(query.Name),
+		Size:      types.Int64Value(int64(query.SizeGb)),
+		Appid:     types.StringValue(data.Appid.ValueString()),
+		Region:    types.StringValue(query.Region),
+		Encrypted: types.BoolValue(query.Encrypted),
 	}
 
 	diags = resp.State.Set(ctx, &data)

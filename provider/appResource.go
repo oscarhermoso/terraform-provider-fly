@@ -62,22 +62,19 @@ func (r *flyAppResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			"org": schema.StringAttribute{
 				Computed:            true,
 				Optional:            true,
-				MarkdownDescription: "Optional org slug to operate upon",
+				MarkdownDescription: "The name of the organization to generate the app in, ex: `personal` (your initial org)",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"orgid": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "readonly orgid",
+				Computed: true,
 			},
 			"id": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "readonly app id",
+				Computed: true,
 			},
 			"appurl": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "readonly appUrl",
+				Computed: true,
 			},
 		},
 	}

@@ -18,7 +18,7 @@ Fly ip resource
 ### Required
 
 - `app` (String) The App this resource will be created in
-- `type` (String) v4 or v6
+- `type` (String) `v4` or `v6`
 
 ### Optional
 

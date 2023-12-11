@@ -21,10 +21,10 @@ description: |-
 
 ### Optional
 
-- `org` (String) Optional org slug to operate upon
+- `org` (String) The name of the organization to generate the app in, ex: `personal` (your initial org)
 
 ### Read-Only
 
-- `appurl` (String) readonly appUrl
-- `id` (String) readonly app id
-- `orgid` (String) readonly orgid
+- `appurl` (String)
+- `id` (String) The ID of this resource.
+- `orgid` (String)

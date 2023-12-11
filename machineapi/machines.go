@@ -127,7 +127,7 @@ func NewMachineAPI(endpoint string, token string) *MachineAPI {
 		if resp.Err != nil {
 			if dump := resp.Dump(); dump != "" {
 				resp.Err = fmt.Errorf("%s\nraw content:\n%s", resp.Err.Error(), resp.Dump())
-				resp.Err = fmt.Errorf("got error doing %s request to %s: %s\nbody:\n%s", resp.Request.Method, resp.Request.RawURL, resp.Err, resp.Dump())
+				resp.Err = fmt.Errorf("got error doing %s %s: %s\nbody:\n%s", resp.Request.Method, resp.Request.RawURL, resp.Err, resp.Dump())
 			}
 			return nil
 		}
@@ -140,7 +140,7 @@ func NewMachineAPI(endpoint string, token string) *MachineAPI {
 
 		if !resp.IsSuccessState() {
 			resp.Dump()
-			resp.Err = fmt.Errorf("got error code response to %s request to %s: %d %s\nbody:\n%s", resp.Request.Method, resp.Request.RawURL, resp.StatusCode, resp.Status, resp.Dump())
+			resp.Err = fmt.Errorf("got error response from %s %s: %s\nbody:\n%s", resp.Request.Method, resp.Request.RawURL, resp.Status, resp.Dump())
 			return nil
 		}
 		return nil
@@ -154,7 +154,7 @@ func NewMachineAPI(endpoint string, token string) *MachineAPI {
 
 func (a *MachineAPI) LockMachine(app string, id string, timeout int) (*MachineLease, error) {
 	var res MachineLease
-	_, err := a.HttpClient.R().SetSuccessResult(&res).Post(fmt.Sprintf("%s/v1/apps/%s/machines/%s/lease/?ttl=%d", a.baseUrl, app, id, timeout))
+	_, err := a.HttpClient.R().SetSuccessResult(&res).Post(fmt.Sprintf("%s/v1/apps/%s/machines/%s/lease?ttl=%d", a.baseUrl, app, id, timeout))
 	if err != nil {
 		return nil, err
 	}

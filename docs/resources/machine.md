@@ -23,6 +23,7 @@ description: |-
 
 ### Optional
 
+- `auto_destroy` (Boolean) Optional boolean telling the Machine to destroy itself once it's complete
 - `cmd` (List of String)
 - `cpus` (Number)
 - `cputype` (String) Which machine flavor, ex: `shared`
@@ -66,6 +67,7 @@ Required:
 
 Optional:
 
+- `force_https` (Boolean) Automatically redirect to HTTPS on "http" handler
 - `handlers` (List of String) How the edge should process requests; ex empty, or `tls` to attach app's certificate
 
 

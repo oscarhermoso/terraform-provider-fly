@@ -26,5 +26,3 @@ Fly volume resource
 - `name` (String) A user-provided identifier, matching regexp `^[a-z0-9-]+$`
 - `region` (String) Fly region, ex `ord`, `sin`, `mad`
 - `size` (Number) Size of volume in GB
-
-

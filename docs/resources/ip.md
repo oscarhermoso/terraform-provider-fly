@@ -28,5 +28,3 @@ Fly ip resource
 
 - `address` (String)
 - `id` (String) A fly-generated ID
-
-

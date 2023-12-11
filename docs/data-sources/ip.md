@@ -25,5 +25,3 @@ Fly ip data source
 - `id` (String) A fly-generated ID
 - `region` (String) Fly region, ex `ord`, `sin`, `mad`
 - `type` (String) v4 or v6
-
-

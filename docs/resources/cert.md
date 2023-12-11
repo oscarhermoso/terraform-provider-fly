@@ -27,5 +27,3 @@ Fly certificate resource
 - `dnsvalidationinstructions` (String)
 - `dnsvalidationtarget` (String)
 - `id` (String) A fly-generated ID
-
-

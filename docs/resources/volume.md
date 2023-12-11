@@ -29,5 +29,3 @@ Fly volume resource
 ### Read-Only
 
 - `id` (String) A fly-generated ID
-
-

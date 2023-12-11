@@ -69,5 +69,3 @@ Optional:
 
 - `force_https` (Boolean) Automatically redirect to HTTPS on "http" handler
 - `handlers` (List of String) How the edge should process requests; ex empty, or `tls` to attach app's certificate
-
-

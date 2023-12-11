@@ -28,5 +28,3 @@ description: |-
 - `appurl` (String) readonly appUrl
 - `id` (String) readonly app id
 - `orgid` (String) readonly orgid
-
-

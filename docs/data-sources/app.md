@@ -30,5 +30,3 @@ description: |-
 - `ipaddresses` (List of String)
 - `sharedipaddress` (String)
 - `status` (String)
-
-

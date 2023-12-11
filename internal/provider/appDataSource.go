@@ -3,8 +3,8 @@ package provider
 import (
 	"context"
 
-	basegql "github.com/Khan/genqlient/graphql"
 	"github.com/fly-apps/terraform-provider-fly/graphql"
+	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -19,7 +19,7 @@ func NewAppDataSource() datasource.DataSource {
 }
 
 type appDataSourceType struct {
-	client *basegql.Client
+	state *providerstate.State
 }
 
 func (d *appDataSourceType) Metadata(_ context.Context, _ datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -30,11 +30,7 @@ func (d *appDataSourceType) Configure(_ context.Context, req datasource.Configur
 	if req.ProviderData == nil {
 		return
 	}
-
-	config := req.ProviderData.(ProviderConfig)
-	d.client = config.gqclient
-	// Maybe wrapping the client in the tunneled client should be done here?
-	// or even in the provider itself?
+	d.state = req.ProviderData.(*providerstate.State)
 }
 
 type appDataSourceOutput struct {
@@ -100,7 +96,7 @@ func (d *appDataSourceType) Read(ctx context.Context, req datasource.ReadRequest
 
 	appName := data.Name.ValueString()
 
-	queryresp, err := graphql.GetFullApp(ctx, *d.client, appName)
+	queryresp, err := graphql.GetFullApp(ctx, *d.state.GraphqlClient, appName)
 	if err != nil {
 		resp.Diagnostics.AddError("Query failed", err.Error())
 		return

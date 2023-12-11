@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
+	"github.com/fly-apps/terraform-provider-fly/internal/utils"
 	"github.com/fly-apps/terraform-provider-fly/pkg/apiv1"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -20,7 +22,7 @@ var _ resource.ResourceWithConfigure = &flyMachineResource{}
 var _ resource.ResourceWithImportState = &flyMachineResource{}
 
 type flyMachineResource struct {
-	config ProviderConfig
+	state *providerstate.State
 }
 
 func NewMachineResource() resource.Resource {
@@ -35,7 +37,7 @@ func (r *flyMachineResource) Configure(_ context.Context, req resource.Configure
 	if req.ProviderData == nil {
 		return
 	}
-	r.config = req.ProviderData.(ProviderConfig)
+	r.state = req.ProviderData.(*providerstate.State)
 }
 
 type TfPort struct {
@@ -311,10 +313,10 @@ func (r *flyMachineResource) Create(ctx context.Context, req resource.CreateRequ
 		createReq.Config.Mounts = mounts
 	}
 
-	machineAPI := apiv1.NewMachineAPI(r.config.httpClient, r.config.httpEndpoint)
+	machineApi := utils.NewMachineApi(ctx, r.state)
 
 	var newMachine apiv1.MachineResponse
-	err := machineAPI.CreateMachine(createReq, data.App.ValueString(), &newMachine)
+	err := machineApi.CreateMachine(createReq, data.App.ValueString(), &newMachine)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create machine", err.Error())
 		return
@@ -362,7 +364,7 @@ func (r *flyMachineResource) Create(ctx context.Context, req resource.CreateRequ
 		data.Mounts = tfmounts
 	}
 
-	err = machineAPI.WaitForMachine(data.App.ValueString(), data.Id.ValueString(), newMachine.InstanceID)
+	err = machineApi.WaitForMachine(data.App.ValueString(), data.Id.ValueString(), newMachine.InstanceID)
 	if err != nil {
 		//FIXME(?): For now we just assume that the orchestrator is in fact going to faithfully execute our request
 		tflog.Info(ctx, "Waiting errored")
@@ -381,11 +383,11 @@ func (r *flyMachineResource) Read(ctx context.Context, req resource.ReadRequest,
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	machineAPI := apiv1.NewMachineAPI(r.config.httpClient, r.config.httpEndpoint)
+	machineApi := utils.NewMachineApi(ctx, r.state)
 
 	var machine apiv1.MachineResponse
 
-	_, err := machineAPI.ReadMachine(data.App.ValueString(), data.Id.ValueString(), &machine)
+	_, err := machineApi.ReadMachine(data.App.ValueString(), data.Id.ValueString(), &machine)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create machine", err.Error())
 		return
@@ -513,7 +515,7 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 		updateReq.Config.Mounts = mounts
 	}
 
-	machineApi := apiv1.NewMachineAPI(r.config.httpClient, r.config.httpEndpoint)
+	machineApi := utils.NewMachineApi(ctx, r.state)
 
 	var updatedMachine apiv1.MachineResponse
 
@@ -576,7 +578,7 @@ func (r *flyMachineResource) Delete(ctx context.Context, req resource.DeleteRequ
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	machineApi := apiv1.NewMachineAPI(r.config.httpClient, r.config.httpEndpoint)
+	machineApi := utils.NewMachineApi(ctx, r.state)
 
 	err := machineApi.DeleteMachine(data.App.ValueString(), data.Id.ValueString(), 50)
 

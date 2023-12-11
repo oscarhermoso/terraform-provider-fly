@@ -3,8 +3,9 @@ package provider
 import (
 	"context"
 	"errors"
-	basegql "github.com/Khan/genqlient/graphql"
+
 	"github.com/fly-apps/terraform-provider-fly/graphql"
+	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -16,7 +17,7 @@ var _ datasource.DataSource = &certDataSourceType{}
 var _ datasource.DataSourceWithConfigure = &certDataSourceType{}
 
 type certDataSourceType struct {
-	client *basegql.Client
+	state *providerstate.State
 }
 
 func (d *certDataSourceType) Metadata(_ context.Context, _ datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -79,8 +80,7 @@ func (d *certDataSourceType) Configure(_ context.Context, req datasource.Configu
 		return
 	}
 
-	config := req.ProviderData.(ProviderConfig)
-	d.client = config.gqclient
+	d.state = req.ProviderData.(*providerstate.State)
 }
 
 func (d *certDataSourceType) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -96,7 +96,7 @@ func (d *certDataSourceType) Read(ctx context.Context, req datasource.ReadReques
 	hostname := data.Hostname.ValueString()
 	app := data.Appid.ValueString()
 
-	query, err := graphql.GetCertificate(ctx, *d.client, app, hostname)
+	query, err := graphql.GetCertificate(ctx, *d.state.GraphqlClient, app, hostname)
 	var errList gqlerror.List
 	if errors.As(err, &errList) {
 		for _, err := range errList {

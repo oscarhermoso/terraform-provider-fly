@@ -2,8 +2,10 @@ package provider
 
 import (
 	"context"
-	"github.com/fly-apps/terraform-provider-fly/pkg/apiv1"
 	"regexp"
+
+	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
+	"github.com/fly-apps/terraform-provider-fly/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -17,7 +19,7 @@ var _ datasource.DataSource = &volumeDataSourceType{}
 var _ datasource.DataSourceWithConfigure = &appDataSourceType{}
 
 type volumeDataSourceType struct {
-	config ProviderConfig
+	state *providerstate.State
 }
 
 func NewVolumeDataSource() datasource.DataSource {
@@ -32,7 +34,7 @@ func (d *volumeDataSourceType) Configure(_ context.Context, req datasource.Confi
 	if req.ProviderData == nil {
 		return
 	}
-	d.config = req.ProviderData.(ProviderConfig)
+	d.state = req.ProviderData.(*providerstate.State)
 }
 
 // Matches Schema
@@ -92,8 +94,8 @@ func (d *volumeDataSourceType) Read(ctx context.Context, req datasource.ReadRequ
 	}
 	app := data.Appid.ValueString()
 
-	machineAPI := apiv1.NewMachineAPI(d.config.httpClient, d.config.httpEndpoint)
-	query, err := machineAPI.GetVolume(ctx, id, app)
+	machineApi := utils.NewMachineApi(ctx, d.state)
+	query, err := machineApi.GetVolume(ctx, id, app)
 	if err != nil {
 		resp.Diagnostics.AddError("Query failed", err.Error())
 		return

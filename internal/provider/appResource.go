@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	basegql "github.com/Khan/genqlient/graphql"
+
 	"github.com/fly-apps/terraform-provider-fly/graphql"
+	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
 	"github.com/fly-apps/terraform-provider-fly/internal/utils"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -20,7 +21,7 @@ var _ resource.ResourceWithConfigure = &flyAppResource{}
 var _ resource.ResourceWithImportState = &flyAppResource{}
 
 type flyAppResource struct {
-	client *basegql.Client
+	state *providerstate.State
 }
 
 func NewAppResource() resource.Resource {
@@ -35,9 +36,7 @@ func (r *flyAppResource) Configure(_ context.Context, req resource.ConfigureRequ
 	if req.ProviderData == nil {
 		return
 	}
-
-	config := req.ProviderData.(ProviderConfig)
-	r.client = config.gqclient
+	r.state = req.ProviderData.(*providerstate.State)
 }
 
 type flyAppResourceData struct {
@@ -89,7 +88,7 @@ func (r *flyAppResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	if data.Org.IsUnknown() {
-		defaultOrg, err := utils.GetDefaultOrg(ctx, *r.client)
+		defaultOrg, err := utils.GetDefaultOrg(ctx, *r.state.GraphqlClient)
 		if err != nil {
 			resp.Diagnostics.AddError("Could not detect default organization", err.Error())
 			return
@@ -97,14 +96,14 @@ func (r *flyAppResource) Create(ctx context.Context, req resource.CreateRequest,
 		data.OrgId = types.StringValue(defaultOrg.Id)
 		data.Org = types.StringValue(defaultOrg.Name)
 	} else {
-		org, err := graphql.Organization(ctx, *r.client, data.Org.ValueString())
+		org, err := graphql.Organization(ctx, *r.state.GraphqlClient, data.Org.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Could not resolve organization", err.Error())
 			return
 		}
 		data.OrgId = types.StringValue(org.Organization.Id)
 	}
-	mresp, err := graphql.CreateAppMutation(ctx, *r.client, data.Name.ValueString(), data.OrgId.ValueString())
+	mresp, err := graphql.CreateAppMutation(ctx, *r.state.GraphqlClient, data.Name.ValueString(), data.OrgId.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Create app failed", err.Error())
 		return
@@ -135,7 +134,7 @@ func (r *flyAppResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	query, err := graphql.GetFullApp(ctx, *r.client, state.Name.ValueString())
+	query, err := graphql.GetFullApp(ctx, *r.state.GraphqlClient, state.Name.ValueString())
 	var errList gqlerror.List
 	if errors.As(err, &errList) {
 		for _, err := range errList {
@@ -200,7 +199,7 @@ func (r flyAppResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	_, err := graphql.DeleteAppMutation(ctx, *r.client, data.Name.ValueString())
+	_, err := graphql.DeleteAppMutation(ctx, *r.state.GraphqlClient, data.Name.ValueString())
 	var errList gqlerror.List
 	if errors.As(err, &errList) {
 		for _, err := range errList {

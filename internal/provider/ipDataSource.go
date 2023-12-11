@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	basegql "github.com/Khan/genqlient/graphql"
+
 	"github.com/fly-apps/terraform-provider-fly/graphql"
+	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -22,7 +23,7 @@ func NewIpDataSource() datasource.DataSource {
 }
 
 type ipDataSourceType struct {
-	client *basegql.Client
+	state *providerstate.State
 }
 
 func (d *ipDataSourceType) Metadata(_ context.Context, _ datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -33,9 +34,7 @@ func (d *ipDataSourceType) Configure(_ context.Context, req datasource.Configure
 	if req.ProviderData == nil {
 		return
 	}
-
-	config := req.ProviderData.(ProviderConfig)
-	d.client = config.gqclient
+	d.state = req.ProviderData.(*providerstate.State)
 }
 
 // Matches Schema
@@ -88,7 +87,7 @@ func (d *ipDataSourceType) Read(ctx context.Context, req datasource.ReadRequest,
 	addr := data.Address.ValueString()
 	app := data.Appid.ValueString()
 
-	query, err := graphql.IpAddressQuery(ctx, *d.client, app, addr)
+	query, err := graphql.IpAddressQuery(ctx, *d.state.GraphqlClient, app, addr)
 	tflog.Info(ctx, fmt.Sprintf("Query res: for %s %s %+v", app, addr, query))
 	var errList gqlerror.List
 	if errors.As(err, &errList) {

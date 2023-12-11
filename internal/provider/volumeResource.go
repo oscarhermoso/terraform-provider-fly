@@ -6,7 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/fly-apps/terraform-provider-fly/pkg/apiv1"
+	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
+	"github.com/fly-apps/terraform-provider-fly/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -22,7 +23,7 @@ var _ resource.ResourceWithConfigure = &flyVolumeResource{}
 var _ resource.ResourceWithImportState = &flyVolumeResource{}
 
 type flyVolumeResource struct {
-	config ProviderConfig
+	state *providerstate.State
 }
 
 func NewVolumeResource() resource.Resource {
@@ -37,7 +38,7 @@ func (r *flyVolumeResource) Configure(_ context.Context, req resource.ConfigureR
 	if req.ProviderData == nil {
 		return
 	}
-	r.config = req.ProviderData.(ProviderConfig)
+	r.state = req.ProviderData.(*providerstate.State)
 }
 
 type flyVolumeResourceData struct {
@@ -70,8 +71,8 @@ func (r *flyVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^[a-z0-9_]+$`),
-						"only allows alphanumeric characters and underscores",
+						regexp.MustCompile(`^[a-z0-9-]+$`),
+						"only allows alphanumeric characters and dashes",
 					),
 				},
 			},
@@ -89,8 +90,8 @@ func (r *flyVolumeResource) Create(ctx context.Context, req resource.CreateReque
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	machineAPI := apiv1.NewMachineAPI(r.config.httpClient, r.config.httpEndpoint)
-	q, err := machineAPI.CreateVolume(ctx, data.Name.ValueString(), data.Appid.ValueString(), data.Region.ValueString(), int(data.Size.ValueInt64()))
+	machineApi := utils.NewMachineApi(ctx, r.state)
+	q, err := machineApi.CreateVolume(ctx, data.Name.ValueString(), data.Appid.ValueString(), data.Region.ValueString(), int(data.Size.ValueInt64()))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create volume", err.Error())
 		tflog.Warn(ctx, fmt.Sprintf("%+v", err))
@@ -134,8 +135,8 @@ func (r *flyVolumeResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 	app := data.Appid.ValueString()
 
-	machineAPI := apiv1.NewMachineAPI(r.config.httpClient, r.config.httpEndpoint)
-	query, err := machineAPI.GetVolume(ctx, id, app)
+	machineApi := utils.NewMachineApi(ctx, r.state)
+	query, err := machineApi.GetVolume(ctx, id, app)
 	if err != nil {
 		resp.Diagnostics.AddError("Query failed", err.Error())
 		return
@@ -168,8 +169,8 @@ func (r *flyVolumeResource) Delete(ctx context.Context, req resource.DeleteReque
 	resp.Diagnostics.Append(diags...)
 
 	if !data.Id.IsUnknown() && !data.Id.IsNull() && data.Id.ValueString() != "" {
-		machineAPI := apiv1.NewMachineAPI(r.config.httpClient, r.config.httpEndpoint)
-		err := machineAPI.DeleteVolume(ctx, data.Appid.ValueString(), data.Id.ValueString())
+		machineApi := utils.NewMachineApi(ctx, r.state)
+		err := machineApi.DeleteVolume(ctx, data.Appid.ValueString(), data.Id.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Delete volume failed", err.Error())
 			return

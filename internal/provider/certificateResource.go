@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	basegql "github.com/Khan/genqlient/graphql"
+	"strings"
+
 	"github.com/fly-apps/terraform-provider-fly/graphql"
+	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/vektah/gqlparser/v2/gqlerror"
-	"strings"
 )
 
 var _ resource.Resource = &flyCertResource{}
@@ -20,7 +21,7 @@ var _ resource.ResourceWithConfigure = &flyCertResource{}
 var _ resource.ResourceWithImportState = &flyCertResource{}
 
 type flyCertResource struct {
-	client *basegql.Client
+	state *providerstate.State
 }
 
 func NewCertResource() resource.Resource {
@@ -35,9 +36,7 @@ func (r *flyCertResource) Configure(_ context.Context, req resource.ConfigureReq
 	if req.ProviderData == nil {
 		return
 	}
-
-	config := req.ProviderData.(ProviderConfig)
-	r.client = config.gqclient
+	r.state = req.ProviderData.(*providerstate.State)
 }
 
 type flyCertResourceData struct {
@@ -92,7 +91,7 @@ func (r *flyCertResource) Create(ctx context.Context, req resource.CreateRequest
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	q, err := graphql.AddCertificate(ctx, *r.client, data.Appid.ValueString(), data.Hostname.ValueString())
+	q, err := graphql.AddCertificate(ctx, *r.state.GraphqlClient, data.Appid.ValueString(), data.Hostname.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create cert", err.Error())
 		return
@@ -126,7 +125,7 @@ func (r *flyCertResource) Read(ctx context.Context, req resource.ReadRequest, re
 	hostname := data.Hostname.ValueString()
 	app := data.Appid.ValueString()
 
-	query, err := graphql.GetCertificate(ctx, *r.client, app, hostname)
+	query, err := graphql.GetCertificate(ctx, *r.state.GraphqlClient, app, hostname)
 	var errList gqlerror.List
 	if errors.As(err, &errList) {
 		for _, err := range errList {
@@ -169,7 +168,7 @@ func (r *flyCertResource) Delete(ctx context.Context, req resource.DeleteRequest
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	_, err := graphql.DeleteCertificate(ctx, *r.client, data.Appid.ValueString(), data.Hostname.ValueString())
+	_, err := graphql.DeleteCertificate(ctx, *r.state.GraphqlClient, data.Appid.ValueString(), data.Hostname.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Delete cert failed", err.Error())
 		return

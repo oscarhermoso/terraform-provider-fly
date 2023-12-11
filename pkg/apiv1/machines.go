@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/Khan/genqlient/graphql"
 	hreq "github.com/imroc/req/v3"
 	"github.com/superfly/flyctl/api"
-	"net/http"
-	"time"
 )
 
 var NonceHeader = "fly-machine-lease-nonce"
@@ -16,7 +17,7 @@ var NonceHeader = "fly-machine-lease-nonce"
 type MachineAPI struct {
 	client     *graphql.Client
 	httpClient *hreq.Client
-	endpoint   string
+	baseUrl    string
 }
 
 type MachineMount struct {
@@ -115,13 +116,13 @@ type MachineLease struct {
 func NewMachineAPI(httpClient *hreq.Client, endpoint string) *MachineAPI {
 	return &MachineAPI{
 		httpClient: httpClient,
-		endpoint:   endpoint,
+		baseUrl:    endpoint,
 	}
 }
 
 func (a *MachineAPI) LockMachine(app string, id string, timeout int) (*MachineLease, error) {
 	var res MachineLease
-	_, err := a.httpClient.R().SetResult(&res).Post(fmt.Sprintf("https://%s/v1/apps/%s/machines/%s/lease/?ttl=%d", a.endpoint, app, id, timeout))
+	_, err := a.httpClient.R().SetSuccessResult(&res).Post(fmt.Sprintf("%s/v1/apps/%s/machines/%s/lease/?ttl=%d", a.baseUrl, app, id, timeout))
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +130,7 @@ func (a *MachineAPI) LockMachine(app string, id string, timeout int) (*MachineLe
 }
 
 func (a *MachineAPI) ReleaseMachine(lease MachineLease, app string, id string) error {
-	_, err := a.httpClient.R().SetHeader(NonceHeader, lease.Data.Nonce).Delete(fmt.Sprintf("https://%s/v1/apps/%s/machines/%s/lease", a.endpoint, app, id))
+	_, err := a.httpClient.R().SetHeader(NonceHeader, lease.Data.Nonce).Delete(fmt.Sprintf("%s/v1/apps/%s/machines/%s/lease", a.baseUrl, app, id))
 	if err != nil {
 		return err
 	}
@@ -137,7 +138,7 @@ func (a *MachineAPI) ReleaseMachine(lease MachineLease, app string, id string) e
 }
 
 func (a *MachineAPI) WaitForMachine(app string, id string, instanceID string) error {
-	_, err := a.httpClient.R().Get(fmt.Sprintf("https://%s/v1/apps/%s/machines/%s/wait?instance_id=%s", a.endpoint, app, id, instanceID))
+	_, err := a.httpClient.R().Get(fmt.Sprintf("%s/v1/apps/%s/machines/%s/wait?instance_id=%s", a.baseUrl, app, id, instanceID))
 	return err
 }
 
@@ -152,7 +153,7 @@ func (a *MachineAPI) CreateMachine(req MachineCreateOrUpdateRequest, app string,
 	if req.Config.Guest.MemoryMb == 0 {
 		req.Config.Guest.MemoryMb = 256
 	}
-	createResponse, err := a.httpClient.R().SetBody(req).SetResult(res).Post(fmt.Sprintf("https://%s/v1/apps/%s/machines", a.endpoint, app))
+	createResponse, err := a.httpClient.R().SetBody(req).SetSuccessResult(res).Post(fmt.Sprintf("%s/v1/apps/%s/machines", a.baseUrl, app))
 
 	if err != nil {
 		return err
@@ -180,7 +181,7 @@ func (a *MachineAPI) UpdateMachine(req MachineCreateOrUpdateRequest, app string,
 	if err != nil {
 		return err
 	}
-	reqRes, err := a.httpClient.R().SetBody(req).SetResult(res).SetHeader(NonceHeader, lease.Data.Nonce).Post(fmt.Sprintf("https://%s/v1/apps/%s/machines/%s", a.endpoint, app, id))
+	reqRes, err := a.httpClient.R().SetBody(req).SetSuccessResult(res).SetHeader(NonceHeader, lease.Data.Nonce).Post(fmt.Sprintf("%s/v1/apps/%s/machines/%s", a.baseUrl, app, id))
 	if err != nil {
 		return err
 	}
@@ -195,27 +196,27 @@ func (a *MachineAPI) UpdateMachine(req MachineCreateOrUpdateRequest, app string,
 }
 
 func (a *MachineAPI) ReadMachine(app string, id string, res *MachineResponse) (*hreq.Response, error) {
-	return a.httpClient.R().SetResult(res).Get(fmt.Sprintf("https://%s/v1/apps/%s/machines/%s", a.endpoint, app, id))
+	return a.httpClient.R().SetResult(res).Get(fmt.Sprintf("%s/v1/apps/%s/machines/%s", a.baseUrl, app, id))
 }
 
 func (a *MachineAPI) DeleteMachine(app string, id string, maxRetries int) error {
 	deleted := false
 	for i := 0; i < maxRetries; i++ {
 		var machine MachineResponse
-		readResponse, err := a.httpClient.R().SetResult(&machine).Get(fmt.Sprintf("https://%s/v1/apps/%s/machines/%s", a.endpoint, app, id))
+		readResponse, err := a.httpClient.R().SetSuccessResult(&machine).Get(fmt.Sprintf("%s/v1/apps/%s/machines/%s", a.baseUrl, app, id))
 		if err != nil {
 			return err
 		}
 
 		if readResponse.StatusCode == 200 {
 			if machine.State == "started" || machine.State == "starting" || machine.State == "replacing" {
-				_, _ = a.httpClient.R().Post(fmt.Sprintf("https://%s/v1/apps/%s/machines/%s/stop", a.endpoint, app, id))
+				_, _ = a.httpClient.R().Post(fmt.Sprintf("%s/v1/apps/%s/machines/%s/stop", a.baseUrl, app, id))
 			}
 			if machine.State == "stopping" || machine.State == "destroying" {
 				time.Sleep(5 * time.Second)
 			}
 			if machine.State == "stopped" || machine.State == "replaced" {
-				_, err = a.httpClient.R().Delete(fmt.Sprintf("https://%s/v1/apps/%s/machines/%s", a.endpoint, app, id))
+				_, err = a.httpClient.R().Delete(fmt.Sprintf("%s/v1/apps/%s/machines/%s", a.baseUrl, app, id))
 				if err != nil {
 					return err
 				}
@@ -238,7 +239,7 @@ func (a *MachineAPI) CreateVolume(ctx context.Context, name, app, region string,
 		Name:   name,
 		Region: region,
 		SizeGb: &size,
-	}).SetSuccessResult(&res).Post(fmt.Sprintf("http://%s/v1/apps/%s/volumes", a.endpoint, app))
+	}).SetSuccessResult(&res).Post(fmt.Sprintf("%s/v1/apps/%s/volumes", a.baseUrl, app))
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +248,7 @@ func (a *MachineAPI) CreateVolume(ctx context.Context, name, app, region string,
 
 func (a *MachineAPI) GetVolume(ctx context.Context, id, app string) (*api.Volume, error) {
 	var res api.Volume
-	_, err := a.httpClient.R().SetContext(ctx).SetSuccessResult(&res).Get(fmt.Sprintf("http://%s/v1/apps/%s/volumes/%s", a.endpoint, app, id))
+	_, err := a.httpClient.R().SetContext(ctx).SetSuccessResult(&res).Get(fmt.Sprintf("%s/v1/apps/%s/volumes/%s", a.baseUrl, app, id))
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +257,7 @@ func (a *MachineAPI) GetVolume(ctx context.Context, id, app string) (*api.Volume
 }
 
 func (a *MachineAPI) DeleteVolume(ctx context.Context, id, app string) error {
-	_, err := a.httpClient.R().SetContext(ctx).Delete(fmt.Sprintf("http://%s/v1/apps/%s/volumes/%s", a.endpoint, app, id))
+	_, err := a.httpClient.R().SetContext(ctx).Delete(fmt.Sprintf("%s/v1/apps/%s/volumes/%s", a.baseUrl, app, id))
 	if err != nil {
 		return err
 	}

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	basegql "github.com/Khan/genqlient/graphql"
 	"github.com/fly-apps/terraform-provider-fly/graphql"
+	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -22,7 +22,7 @@ var _ resource.ResourceWithConfigure = &flyIpResource{}
 var _ resource.ResourceWithImportState = &flyIpResource{}
 
 type flyIpResource struct {
-	client *basegql.Client
+	state *providerstate.State
 }
 
 func NewIpResource() resource.Resource {
@@ -37,9 +37,7 @@ func (r *flyIpResource) Configure(_ context.Context, req resource.ConfigureReque
 	if req.ProviderData == nil {
 		return
 	}
-
-	config := req.ProviderData.(ProviderConfig)
-	r.client = config.gqclient
+	r.state = req.ProviderData.(*providerstate.State)
 }
 
 type flyIpResourceData struct {
@@ -88,7 +86,7 @@ func (r *flyIpResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	tflog.Info(ctx, fmt.Sprintf("%+v", data))
 
-	q, err := graphql.AllocateIpAddress(ctx, *r.client, data.Appid.ValueString(), data.Region.ValueString(), graphql.IPAddressType(data.Type.ValueString()))
+	q, err := graphql.AllocateIpAddress(ctx, *r.state.GraphqlClient, data.Appid.ValueString(), data.Region.ValueString(), graphql.IPAddressType(data.Type.ValueString()))
 	tflog.Info(ctx, fmt.Sprintf("query res in create ip: %+v", q))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create ip addr", err.Error())
@@ -121,7 +119,7 @@ func (r flyIpResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	addr := data.Address.ValueString()
 	app := data.Appid.ValueString()
 
-	query, err := graphql.IpAddressQuery(ctx, *r.client, app, addr)
+	query, err := graphql.IpAddressQuery(ctx, *r.state.GraphqlClient, app, addr)
 	tflog.Info(ctx, fmt.Sprintf("Query res: for %s %s %+v", app, addr, query))
 	var errList gqlerror.List
 	if errors.As(err, &errList) {
@@ -164,7 +162,7 @@ func (r *flyIpResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	resp.Diagnostics.Append(diags...)
 
 	if !data.Id.IsUnknown() && !data.Id.IsNull() && data.Id.ValueString() != "" {
-		_, err := graphql.ReleaseIpAddress(ctx, *r.client, data.Id.ValueString())
+		_, err := graphql.ReleaseIpAddress(ctx, *r.state.GraphqlClient, data.Id.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Release ip failed", err.Error())
 			return

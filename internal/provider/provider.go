@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/fly-apps/terraform-provider-fly/internal/providerstate"
 	"github.com/fly-apps/terraform-provider-fly/internal/utils"
-	hreq "github.com/imroc/req/v3"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -19,24 +19,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-const FLY_MACHINES_ENDPOINT string = "api.machines.dev"
+var _ provider.Provider = (*flyProvider)(nil)
 
-var _ provider.Provider = &flyProvider{}
-
-type ProviderConfig struct {
-	httpEndpoint string
-	gqclient     *graphql.Client
-	httpClient   *hreq.Client
-}
-
-type flyProvider struct {
-	configured   bool
-	version      string
-	token        string
-	httpEndpoint string
-	client       *graphql.Client
-	httpClient   *hreq.Client
-}
+type flyProvider struct{}
 
 type flyProviderData struct {
 	FlyToken        types.String `tfsdk:"fly_api_token"`
@@ -77,17 +62,13 @@ func (p *flyProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		return
 	}
 
-	p.token = token
-
 	endpoint, exists := os.LookupEnv("FLY_HTTP_ENDPOINT")
-	httpEndpoint := FLY_MACHINES_ENDPOINT
+	restBaseUrl := "https://api.machines.dev"
 	if !data.FlyHttpEndpoint.IsNull() && !data.FlyHttpEndpoint.IsUnknown() {
-		httpEndpoint = data.FlyHttpEndpoint.ValueString()
+		restBaseUrl = data.FlyHttpEndpoint.ValueString()
 	} else if exists {
-		httpEndpoint = endpoint
+		restBaseUrl = endpoint
 	}
-
-	p.httpEndpoint = httpEndpoint
 
 	enableTracing := false
 	_, ok := os.LookupEnv("DEBUG")
@@ -96,30 +77,23 @@ func (p *flyProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		resp.Diagnostics.AddWarning("Debug mode enabled", "Debug mode enabled, this will add the Fly-Force-Trace header to all graphql requests")
 	}
 
-	p.httpClient = hreq.C()
-
-	if enableTracing {
-		p.httpClient.SetCommonHeader("Fly-Force-Trace", "true")
-		p.httpClient = hreq.C().DevMode()
+	state := &providerstate.State{
+		EnableTracing: enableTracing,
+		Token:         token,
+		RestBaseUrl:   restBaseUrl,
+		GraphqlClient: utils.P(graphql.NewClient("https://api.fly.io/graphql", &http.Client{
+			Timeout: 60 * time.Second,
+			Transport: &utils.Transport{
+				UnderlyingTransport: http.DefaultTransport,
+				Token:               token,
+				Ctx:                 ctx,
+				EnableDebugTrace:    enableTracing,
+			},
+		})),
 	}
 
-	p.httpClient.SetCommonHeader("Authorization", "Bearer "+p.token)
-	p.httpClient.SetTimeout(2 * time.Minute)
-
-	// TODO: Make timeout configurable
-	h := http.Client{Timeout: 60 * time.Second, Transport: &utils.Transport{UnderlyingTransport: http.DefaultTransport, Token: token, Ctx: ctx, EnableDebugTrace: enableTracing}}
-	client := graphql.NewClient("https://api.fly.io/graphql", &h)
-	p.client = &client
-	p.configured = true
-
-	configForResources := ProviderConfig{
-		httpEndpoint: p.httpEndpoint,
-		gqclient:     p.client,
-		httpClient:   p.httpClient,
-	}
-
-	resp.DataSourceData = configForResources
-	resp.ResourceData = configForResources
+	resp.DataSourceData = state
+	resp.ResourceData = state
 }
 
 func (p *flyProvider) Resources(ctx context.Context) []func() resource.Resource {
@@ -156,11 +130,9 @@ func (p *flyProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 	}
 }
 
-func New(version string) func() provider.Provider {
+func New() func() provider.Provider {
 	return func() provider.Provider {
-		return &flyProvider{
-			version: version,
-		}
+		return &flyProvider{}
 	}
 }
 

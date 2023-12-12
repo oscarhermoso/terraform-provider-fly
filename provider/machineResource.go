@@ -57,12 +57,12 @@ type flyMachineResourceData struct {
 	Name        types.String `tfsdk:"name"`
 	Region      types.String `tfsdk:"region"`
 	Id          types.String `tfsdk:"id"`
-	PrivateIP   types.String `tfsdk:"privateip"`
+	PrivateIP   types.String `tfsdk:"private_ip"`
 	App         types.String `tfsdk:"app"`
 	Image       types.String `tfsdk:"image"`
 	Cpus        types.Int64  `tfsdk:"cpus"`
-	MemoryMb    types.Int64  `tfsdk:"memorymb"`
-	CpuType     types.String `tfsdk:"cputype"`
+	MemoryMb    types.Int64  `tfsdk:"memory_mb"`
+	CpuType     types.String `tfsdk:"cpu_type"`
 	Env         types.Map    `tfsdk:"env"`
 	Cmd         []string     `tfsdk:"cmd"`
 	Entrypoint  []string     `tfsdk:"entrypoint"`
@@ -107,7 +107,7 @@ func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: APP_DESC,
 				Required:            true,
 			},
-			"privateip": schema.StringAttribute{
+			"private_ip": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -129,7 +129,7 @@ func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: "Protocol-less docker image, ex: `registry.fly.io/myapp:mytag`",
 				Required:            true,
 			},
-			"cputype": schema.StringAttribute{
+			"cpu_type": schema.StringAttribute{
 				MarkdownDescription: "Which machine flavor, ex: `shared`",
 				Computed:            true,
 				Optional:            true,
@@ -138,9 +138,10 @@ func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Computed: true,
 				Optional: true,
 			},
-			"memorymb": schema.Int64Attribute{
-				Computed: true,
-				Optional: true,
+			"memory": schema.Int64Attribute{
+				MarkdownDescription: "Amount of memory in MB. `256`, `512`, `1024`, ...",
+				Computed:            true,
+				Optional:            true,
 			},
 			"env": schema.MapAttribute{
 				MarkdownDescription: "Keys and values must be strings",

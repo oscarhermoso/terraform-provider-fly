@@ -40,11 +40,11 @@ func (r *flyCertResource) Configure(_ context.Context, req resource.ConfigureReq
 }
 
 type flyCertResourceData struct {
+	App                       types.String `tfsdk:"app"`
 	Id                        types.String `tfsdk:"id"`
-	Appid                     types.String `tfsdk:"app"`
-	Dnsvalidationinstructions types.String `tfsdk:"dnsvalidationinstructions"`
-	Dnsvalidationhostname     types.String `tfsdk:"dnsvalidationhostname"`
-	Dnsvalidationtarget       types.String `tfsdk:"dnsvalidationtarget"`
+	DnsValidationInstructions types.String `tfsdk:"dns_validation_instructions"`
+	DnsValidationHostname     types.String `tfsdk:"dns_validation_hostname"`
+	DnsValidationTarget       types.String `tfsdk:"dns_validation_target"`
 	Hostname                  types.String `tfsdk:"hostname"`
 	Check                     types.Bool   `tfsdk:"check"`
 }
@@ -61,13 +61,13 @@ func (r *flyCertResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				MarkdownDescription: ID_DESC,
 				Computed:            true,
 			},
-			"dnsvalidationinstructions": schema.StringAttribute{
+			"dns_validation_instructions": schema.StringAttribute{
 				Computed: true,
 			},
-			"dnsvalidationtarget": schema.StringAttribute{
+			"dns_validation_target": schema.StringAttribute{
 				Computed: true,
 			},
-			"dnsvalidationhostname": schema.StringAttribute{
+			"dns_validation_hostname": schema.StringAttribute{
 				Computed: true,
 			},
 			"check": schema.BoolAttribute{
@@ -89,7 +89,7 @@ func (r *flyCertResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	q, err := graphql.AddCertificate(ctx, r.state.GraphqlClient, data.Appid.ValueString(), data.Hostname.ValueString())
+	q, err := graphql.AddCertificate(ctx, r.state.GraphqlClient, data.App.ValueString(), data.Hostname.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create cert", err.Error())
 		return
@@ -97,10 +97,10 @@ func (r *flyCertResource) Create(ctx context.Context, req resource.CreateRequest
 
 	data = flyCertResourceData{
 		Id:                        types.StringValue(q.AddCertificate.Certificate.Id),
-		Appid:                     types.StringValue(data.Appid.ValueString()),
-		Dnsvalidationinstructions: types.StringValue(q.AddCertificate.Certificate.DnsValidationInstructions),
-		Dnsvalidationhostname:     types.StringValue(q.AddCertificate.Certificate.DnsValidationHostname),
-		Dnsvalidationtarget:       types.StringValue(q.AddCertificate.Certificate.DnsValidationTarget),
+		App:                       types.StringValue(data.App.ValueString()),
+		DnsValidationInstructions: types.StringValue(q.AddCertificate.Certificate.DnsValidationInstructions),
+		DnsValidationHostname:     types.StringValue(q.AddCertificate.Certificate.DnsValidationHostname),
+		DnsValidationTarget:       types.StringValue(q.AddCertificate.Certificate.DnsValidationTarget),
 		Hostname:                  types.StringValue(q.AddCertificate.Certificate.Hostname),
 		Check:                     types.BoolValue(q.AddCertificate.Certificate.Check),
 	}
@@ -123,7 +123,7 @@ func (r *flyCertResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	hostname := data.Hostname.ValueString()
-	app := data.Appid.ValueString()
+	app := data.App.ValueString()
 
 	query, err := graphql.GetCertificate(ctx, r.state.GraphqlClient, app, hostname)
 	var errList gqlerror.List
@@ -141,10 +141,10 @@ func (r *flyCertResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	data = flyCertResourceData{
 		Id:                        types.StringValue(query.App.Certificate.Id),
-		Appid:                     types.StringValue(data.Appid.ValueString()),
-		Dnsvalidationinstructions: types.StringValue(query.App.Certificate.DnsValidationInstructions),
-		Dnsvalidationhostname:     types.StringValue(query.App.Certificate.DnsValidationHostname),
-		Dnsvalidationtarget:       types.StringValue(query.App.Certificate.DnsValidationTarget),
+		App:                       types.StringValue(data.App.ValueString()),
+		DnsValidationInstructions: types.StringValue(query.App.Certificate.DnsValidationInstructions),
+		DnsValidationHostname:     types.StringValue(query.App.Certificate.DnsValidationHostname),
+		DnsValidationTarget:       types.StringValue(query.App.Certificate.DnsValidationTarget),
 		Hostname:                  types.StringValue(query.App.Certificate.Hostname),
 		Check:                     types.BoolValue(query.App.Certificate.Check),
 	}
@@ -170,7 +170,7 @@ func (r *flyCertResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	_, err := graphql.DeleteCertificate(ctx, r.state.GraphqlClient, data.Appid.ValueString(), data.Hostname.ValueString())
+	_, err := graphql.DeleteCertificate(ctx, r.state.GraphqlClient, data.App.ValueString(), data.Hostname.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Delete cert failed", err.Error())
 		return

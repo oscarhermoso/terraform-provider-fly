@@ -23,7 +23,7 @@ Fly certificate resource
 ### Read-Only
 
 - `check` (Boolean)
-- `dnsvalidationhostname` (String)
-- `dnsvalidationinstructions` (String)
-- `dnsvalidationtarget` (String)
+- `dns_validation_hostname` (String)
+- `dns_validation_instructions` (String)
+- `dns_validation_target` (String)
 - `id` (String) A fly-generated ID

@@ -39,7 +39,7 @@ type volumeDataSourceOutput struct {
 	Id        types.String `tfsdk:"id"`
 	Name      types.String `tfsdk:"name"`
 	Size      types.Int64  `tfsdk:"size"`
-	Appid     types.String `tfsdk:"app"`
+	App       types.String `tfsdk:"app"`
 	Region    types.String `tfsdk:"region"`
 	Encrypted types.Bool   `tfsdk:"encrypted"`
 }
@@ -83,7 +83,7 @@ func (d *volumeDataSourceType) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	id := data.Id.ValueString()
-	app := data.Appid.ValueString()
+	app := data.App.ValueString()
 
 	machineApi := utils.NewMachineApi(ctx, d.state)
 	query, err := machineApi.GetVolume(ctx, id, app)
@@ -96,7 +96,7 @@ func (d *volumeDataSourceType) Read(ctx context.Context, req datasource.ReadRequ
 		Id:        types.StringValue(query.ID),
 		Name:      types.StringValue(query.Name),
 		Size:      types.Int64Value(int64(query.SizeGb)),
-		Appid:     types.StringValue(data.Appid.ValueString()),
+		App:       types.StringValue(data.App.ValueString()),
 		Region:    types.StringValue(query.Region),
 		Encrypted: types.BoolValue(query.Encrypted),
 	}

@@ -43,11 +43,11 @@ func (r *flyAppResource) Configure(_ context.Context, req resource.ConfigureRequ
 type flyAppResourceData struct {
 	Name                  types.String `tfsdk:"name"`
 	Org                   types.String `tfsdk:"org"`
-	OrgId                 types.String `tfsdk:"orgid"`
-	AppUrl                types.String `tfsdk:"appurl"`
+	OrgId                 types.String `tfsdk:"org_id"`
+	AppUrl                types.String `tfsdk:"app_url"`
 	Id                    types.String `tfsdk:"id"`
-	EnableSharedIpAddress types.Bool   `tfsdk:"enable_shared_ip_address"`
-	SharedIpAddress       types.String `tfsdk:"sharedipaddress"`
+	AssignSharedIpAddress types.Bool   `tfsdk:"assign_shared_ip_address"`
+	SharedIpAddress       types.String `tfsdk:"shared_ip_address"`
 }
 
 func (r *flyAppResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -71,24 +71,24 @@ func (r *flyAppResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 
 			// RW
-			"enable_shared_ip_address": schema.BoolAttribute{
+			"assign_shared_ip_address": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
-				MarkdownDescription: "Assign a shared ipv4 address to the app",
+				MarkdownDescription: "Assign a shared ipv4 address to the app. Note that depending on conditions an app may get a shared ip automatically.",
 			},
 
 			// RO
-			"orgid": schema.StringAttribute{
+			"org_id": schema.StringAttribute{
 				Computed: true,
 			},
 			"id": schema.StringAttribute{
 				Computed: true,
 			},
-			"appurl": schema.StringAttribute{
+			"app_url": schema.StringAttribute{
 				Computed: true,
 			},
-			"sharedipaddress": schema.StringAttribute{
+			"shared_ip_address": schema.StringAttribute{
 				MarkdownDescription: SHAREDIP_DESC,
 				Computed:            true,
 			},
@@ -132,7 +132,7 @@ func (r *flyAppResource) Create(ctx context.Context, req resource.CreateRequest,
 	data.AppUrl = types.StringValue(mresp.CreateApp.App.AppUrl)
 	data.Id = types.StringValue(mresp.CreateApp.App.Id)
 
-	if data.EnableSharedIpAddress.ValueBool() {
+	if data.AssignSharedIpAddress.ValueBool() {
 		mresp2, err := graphql.AllocateIpAddress(ctx, r.state.GraphqlClient, name, "global", "shared_v4")
 		if err != nil {
 			utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error allocating shared ipv4 address (app [%s])", name)
@@ -190,8 +190,8 @@ func (r *flyAppResource) Update(ctx context.Context, req resource.UpdateRequest,
 	diags = resp.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 
-	enableSharedIp := plan.EnableSharedIpAddress.ValueBool()
-	if !plan.EnableSharedIpAddress.IsNull() && enableSharedIp != state.EnableSharedIpAddress.ValueBool() {
+	enableSharedIp := plan.AssignSharedIpAddress.ValueBool()
+	if !plan.AssignSharedIpAddress.IsNull() && enableSharedIp != state.AssignSharedIpAddress.ValueBool() {
 		if enableSharedIp {
 
 		} else {

@@ -39,7 +39,7 @@ func (d *ipDataSourceType) Configure(_ context.Context, req datasource.Configure
 // Matches Schema
 type ipDataSourceOutput struct {
 	Id      types.String `tfsdk:"id"`
-	Appid   types.String `tfsdk:"app"`
+	App     types.String `tfsdk:"app"`
 	Region  types.String `tfsdk:"region"`
 	Address types.String `tfsdk:"address"`
 	Type    types.String `tfsdk:"type"`
@@ -81,7 +81,7 @@ func (d *ipDataSourceType) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 
 	addr := data.Address.ValueString()
-	app := data.Appid.ValueString()
+	app := data.App.ValueString()
 	query, err := graphql.IpAddressQuery(ctx, d.state.GraphqlClient, app, addr)
 	tflog.Info(ctx, fmt.Sprintf("Query res: for %s %s %+v", app, addr, query))
 	if err != nil {

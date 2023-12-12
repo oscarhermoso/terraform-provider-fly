@@ -25,12 +25,12 @@ description: |-
 
 - `auto_destroy` (Boolean) Optional boolean telling the Machine to destroy itself once it's complete
 - `cmd` (List of String)
+- `cpu_type` (String) Which machine flavor, ex: `shared`
 - `cpus` (Number)
-- `cputype` (String) Which machine flavor, ex: `shared`
 - `entrypoint` (List of String)
 - `env` (Map of String) Keys and values must be strings
 - `exec` (List of String)
-- `memorymb` (Number)
+- `memory` (Number) Amount of memory in MB. `256`, `512`, `1024`, ...
 - `mounts` (Attributes List) (see [below for nested schema](#nestedatt--mounts))
 - `name` (String) A user-provided identifier, matching regexp `^[a-z0-9-]+$`
 - `services` (Attributes List) (see [below for nested schema](#nestedatt--services))
@@ -38,7 +38,7 @@ description: |-
 ### Read-Only
 
 - `id` (String) A fly-generated ID
-- `privateip` (String)
+- `private_ip` (String)
 
 <a id="nestedatt--mounts"></a>
 ### Nested Schema for `mounts`

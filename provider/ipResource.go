@@ -44,7 +44,7 @@ func (r *flyIpResource) Configure(_ context.Context, req resource.ConfigureReque
 
 type flyIpResourceData struct {
 	Id      types.String `tfsdk:"id"`
-	Appid   types.String `tfsdk:"app"`
+	App     types.String `tfsdk:"app"`
 	Region  types.String `tfsdk:"region"`
 	Address types.String `tfsdk:"address"`
 	Type    types.String `tfsdk:"type"`
@@ -99,7 +99,7 @@ func (r *flyIpResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	app := data.Appid.ValueString()
+	app := data.App.ValueString()
 	region := data.Region.ValueString()
 	type_ := graphql.IPAddressType(data.Type.ValueString())
 	q, err := graphql.AllocateIpAddress(ctx, r.state.GraphqlClient, app, region, type_)
@@ -109,7 +109,7 @@ func (r *flyIpResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 
 	data.Id = types.StringValue(q.AllocateIpAddress.IpAddress.Id)
-	data.Appid = types.StringValue(data.Appid.ValueString())
+	data.App = types.StringValue(data.App.ValueString())
 	data.Address = types.StringValue(data.Address.ValueString())
 	if q.AllocateIpAddress.IpAddress.Region != "" {
 		data.Region = types.StringValue(q.AllocateIpAddress.IpAddress.Region)
@@ -134,7 +134,7 @@ func (r flyIpResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	}
 
 	addr := data.Address.ValueString()
-	app := data.Appid.ValueString()
+	app := data.App.ValueString()
 	query, err := graphql.IpAddressQuery(ctx, r.state.GraphqlClient, app, addr)
 	if err != nil {
 		utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error looking up ip address (app [%s], addr [%s])", app, addr)
@@ -175,9 +175,12 @@ func (r *flyIpResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	if !data.Id.IsUnknown() && !data.Id.IsNull() && data.Id.ValueString() != "" {
-		_, err := graphql.ReleaseIpAddress(ctx, r.state.GraphqlClient, data.Appid.String(), data.Id.ValueString(), "")
+		app := data.App.String()
+		id := data.Id.ValueString()
+		ip := ""
+		_, err := graphql.ReleaseIpAddress(ctx, r.state.GraphqlClient, app, id, ip)
 		if err != nil {
-			utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error deleting ip address (id [%s])", data.Id.ValueString())
+			utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error deleting ip address (app [%s], id [%s], ip [%s])", app, id, ip)
 			return
 		}
 	}

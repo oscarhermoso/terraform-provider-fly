@@ -44,7 +44,7 @@ type flyVolumeResourceData struct {
 	Id        types.String `tfsdk:"id"`
 	Name      types.String `tfsdk:"name"`
 	Size      types.Int64  `tfsdk:"size"`
-	Appid     types.String `tfsdk:"app"`
+	App       types.String `tfsdk:"app"`
 	Region    types.String `tfsdk:"region"`
 	Encrypted types.Bool   `tfsdk:"encrypted"`
 }
@@ -97,7 +97,7 @@ func (r *flyVolumeResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	machineApi := utils.NewMachineApi(ctx, r.state)
-	q, err := machineApi.CreateVolume(ctx, data.Name.ValueString(), data.Appid.ValueString(), data.Region.ValueString(), int(data.Size.ValueInt64()))
+	q, err := machineApi.CreateVolume(ctx, data.Name.ValueString(), data.App.ValueString(), data.Region.ValueString(), int(data.Size.ValueInt64()))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create volume", err.Error())
 		tflog.Warn(ctx, fmt.Sprintf("%+v", err))
@@ -108,7 +108,7 @@ func (r *flyVolumeResource) Create(ctx context.Context, req resource.CreateReque
 		Id:        types.StringValue(q.ID),
 		Name:      types.StringValue(q.Name),
 		Size:      types.Int64Value(int64(q.SizeGb)),
-		Appid:     types.StringValue(data.Appid.ValueString()),
+		App:       types.StringValue(data.App.ValueString()),
 		Region:    types.StringValue(q.Region),
 		Encrypted: types.BoolValue(q.Encrypted),
 	}
@@ -135,7 +135,7 @@ func (r *flyVolumeResource) Read(ctx context.Context, req resource.ReadRequest, 
 		resp.Diagnostics.AddError("Failed to read volume", "id is empty")
 		return
 	}
-	app := data.Appid.ValueString()
+	app := data.App.ValueString()
 
 	machineApi := utils.NewMachineApi(ctx, r.state)
 	query, err := machineApi.GetVolume(ctx, id, app)
@@ -148,7 +148,7 @@ func (r *flyVolumeResource) Read(ctx context.Context, req resource.ReadRequest, 
 		Id:        types.StringValue(query.ID),
 		Name:      types.StringValue(query.Name),
 		Size:      types.Int64Value(int64(query.SizeGb)),
-		Appid:     types.StringValue(data.Appid.ValueString()),
+		App:       types.StringValue(data.App.ValueString()),
 		Region:    types.StringValue(query.Region),
 		Encrypted: types.BoolValue(query.Encrypted),
 	}
@@ -176,7 +176,7 @@ func (r *flyVolumeResource) Delete(ctx context.Context, req resource.DeleteReque
 
 	if !data.Id.IsUnknown() && !data.Id.IsNull() && data.Id.ValueString() != "" {
 		machineApi := utils.NewMachineApi(ctx, r.state)
-		err := machineApi.DeleteVolume(ctx, data.Appid.ValueString(), data.Id.ValueString())
+		err := machineApi.DeleteVolume(ctx, data.App.ValueString(), data.Id.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Delete volume failed", err.Error())
 			return

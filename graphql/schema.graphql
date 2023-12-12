@@ -4056,9 +4056,6 @@ input ReleaseIPAddressInput {
 
   appId: ID!
 
-  # The id of the ip address to release
-  ipAddressId: ID!
-
   ip: String!
 }
 

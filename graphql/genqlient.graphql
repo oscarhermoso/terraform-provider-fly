@@ -163,11 +163,9 @@ mutation AllocateIpAddress(
   }
 }
 
-mutation ReleaseIpAddress($appId: ID!, $addressId: ID!, $ip: String!) {
-  releaseIpAddress(input: { appId: $appId, ipAddressId: $addressId, ip: $ip }) {
-    app {
-      name
-    }
+mutation ReleaseIpAddress($appId: ID!, $ip: String!) {
+  releaseIpAddress(input: { appId: $appId, ip: $ip }) {
+    clientMutationId
   }
 }
 

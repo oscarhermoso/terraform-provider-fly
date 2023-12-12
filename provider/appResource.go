@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"errors"
 
 	"github.com/andrewbaxter/terraform-provider-fly/graphql"
 	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
@@ -14,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 var _ resource.Resource = &flyAppResource{}
@@ -178,32 +176,37 @@ func (r *flyAppResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 func (r *flyAppResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan flyAppResourceData
-
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var state flyAppResourceData
-	diags = resp.State.Get(ctx, &state)
+	var data flyAppResourceData
+	diags = resp.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
 	enableSharedIp := plan.AssignSharedIpAddress.ValueBool()
-	if !plan.AssignSharedIpAddress.IsNull() && enableSharedIp != state.AssignSharedIpAddress.ValueBool() {
+	if !plan.AssignSharedIpAddress.IsNull() && enableSharedIp != data.AssignSharedIpAddress.ValueBool() {
+		name := plan.Name.ValueString()
 		if enableSharedIp {
-
+			mresp2, err := graphql.AllocateIpAddress(ctx, r.state.GraphqlClient, name, "global", "shared_v4")
+			if err != nil {
+				utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error allocating shared ipv4 address (app [%s])", name)
+				return
+			}
+			data.SharedIpAddress = types.StringValue(mresp2.AllocateIpAddress.App.SharedIpAddress)
 		} else {
-			_, err := graphql.ReleaseIpAddress(ctx, r.state.GraphqlClient, plan.Name.ValueString(), "", state.SharedIpAddress.ValueString())
+			_, err := graphql.ReleaseIpAddress(ctx, r.state.GraphqlClient, plan.Name.ValueString(), data.SharedIpAddress.ValueString())
 			if err != nil {
 				utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error deleting shared ip address (app [%s], addr [%s])", plan.Name.ValueString(), plan.SharedIpAddress.ValueString())
 				return
 			}
+			data.SharedIpAddress = types.StringValue("")
 		}
 	}
 
-	diags = resp.State.Set(ctx, state)
+	diags = resp.State.Set(ctx, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -216,14 +219,10 @@ func (r flyAppResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	_, err := graphql.DeleteAppMutation(ctx, r.state.GraphqlClient, data.Name.ValueString())
-	var errList gqlerror.List
-	if errors.As(err, &errList) {
-		for _, err := range errList {
-			resp.Diagnostics.AddError(err.Message, err.Path.String())
-		}
-	} else if err != nil {
-		resp.Diagnostics.AddError("Delete app failed", err.Error())
+	name := data.Name.ValueString()
+	_, err := graphql.DeleteAppMutation(ctx, r.state.GraphqlClient, name)
+	if err != nil {
+		utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error deleting app (name [%s])", name)
 		return
 	}
 

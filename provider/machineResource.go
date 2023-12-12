@@ -61,7 +61,7 @@ type flyMachineResourceData struct {
 	App         types.String `tfsdk:"app"`
 	Image       types.String `tfsdk:"image"`
 	Cpus        types.Int64  `tfsdk:"cpus"`
-	MemoryMb    types.Int64  `tfsdk:"memory_mb"`
+	MemoryMb    types.Int64  `tfsdk:"memory"`
 	CpuType     types.String `tfsdk:"cpu_type"`
 	Env         types.Map    `tfsdk:"env"`
 	Cmd         []string     `tfsdk:"cmd"`

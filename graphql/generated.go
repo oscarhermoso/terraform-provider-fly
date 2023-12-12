@@ -1053,21 +1053,13 @@ func (v *OrgsQueryResponse) GetOrganizations() OrgsQueryOrganizationsOrganizatio
 
 // ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayload includes the requested fields of the GraphQL type ReleaseIPAddressPayload.
 type ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayload struct {
-	App ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayloadApp `json:"app"`
+	ClientMutationId string `json:"clientMutationId"`
 }
 
-// GetApp returns ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayload.App, and is useful for accessing the field via an interface.
-func (v *ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayload) GetApp() ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayloadApp {
-	return v.App
+// GetClientMutationId returns ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayload.ClientMutationId, and is useful for accessing the field via an interface.
+func (v *ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayload) GetClientMutationId() string {
+	return v.ClientMutationId
 }
-
-// ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayloadApp includes the requested fields of the GraphQL type App.
-type ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayloadApp struct {
-	Name string `json:"name"`
-}
-
-// GetName returns ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayloadApp.Name, and is useful for accessing the field via an interface.
-func (v *ReleaseIpAddressReleaseIpAddressReleaseIPAddressPayloadApp) GetName() string { return v.Name }
 
 // ReleaseIpAddressResponse is returned by ReleaseIpAddress on success.
 type ReleaseIpAddressResponse struct {
@@ -1456,16 +1448,12 @@ func (v *__OrganizationInput) GetSlug() string { return v.Slug }
 
 // __ReleaseIpAddressInput is used internally by genqlient
 type __ReleaseIpAddressInput struct {
-	AppId     string `json:"appId"`
-	AddressId string `json:"addressId"`
-	Ip        string `json:"ip"`
+	AppId string `json:"appId"`
+	Ip    string `json:"ip"`
 }
 
 // GetAppId returns __ReleaseIpAddressInput.AppId, and is useful for accessing the field via an interface.
 func (v *__ReleaseIpAddressInput) GetAppId() string { return v.AppId }
-
-// GetAddressId returns __ReleaseIpAddressInput.AddressId, and is useful for accessing the field via an interface.
-func (v *__ReleaseIpAddressInput) GetAddressId() string { return v.AddressId }
 
 // GetIp returns __ReleaseIpAddressInput.Ip, and is useful for accessing the field via an interface.
 func (v *__ReleaseIpAddressInput) GetIp() string { return v.Ip }
@@ -2140,11 +2128,9 @@ func OrgsQuery(
 
 // The query or mutation executed by ReleaseIpAddress.
 const ReleaseIpAddress_Operation = `
-mutation ReleaseIpAddress ($appId: ID!, $addressId: ID!, $ip: String!) {
-	releaseIpAddress(input: {appId:$appId,ipAddressId:$addressId,ip:$ip}) {
-		app {
-			name
-		}
+mutation ReleaseIpAddress ($appId: ID!, $ip: String!) {
+	releaseIpAddress(input: {appId:$appId,ip:$ip}) {
+		clientMutationId
 	}
 }
 `
@@ -2153,16 +2139,14 @@ func ReleaseIpAddress(
 	ctx context.Context,
 	client graphql.Client,
 	appId string,
-	addressId string,
 	ip string,
 ) (*ReleaseIpAddressResponse, error) {
 	req := &graphql.Request{
 		OpName: "ReleaseIpAddress",
 		Query:  ReleaseIpAddress_Operation,
 		Variables: &__ReleaseIpAddressInput{
-			AppId:     appId,
-			AddressId: addressId,
-			Ip:        ip,
+			AppId: appId,
+			Ip:    ip,
 		},
 	}
 	var err error

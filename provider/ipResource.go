@@ -175,12 +175,11 @@ func (r *flyIpResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	if !data.Id.IsUnknown() && !data.Id.IsNull() && data.Id.ValueString() != "" {
-		app := data.App.String()
-		id := data.Id.ValueString()
-		ip := ""
-		_, err := graphql.ReleaseIpAddress(ctx, r.state.GraphqlClient, app, id, ip)
+		app := data.App.ValueString()
+		ip := data.Address.ValueString()
+		_, err := graphql.ReleaseIpAddress(ctx, r.state.GraphqlClient, app, ip)
 		if err != nil {
-			utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error deleting ip address (app [%s], id [%s], ip [%s])", app, id, ip)
+			utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error deleting ip address (app [%s], ip [%s])", app, ip)
 			return
 		}
 	}

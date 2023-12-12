@@ -69,7 +69,7 @@ func (r *flyIpResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Computed:            true,
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "`v4` or `v6`",
+				MarkdownDescription: "`v4`, `v4_shared`, or `v6`",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),

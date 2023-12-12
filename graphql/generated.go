@@ -138,11 +138,27 @@ func (v *AddWireguardPeerResponse) GetAddWireGuardPeer() AddWireguardPeerAddWire
 // AllocateIpAddressAllocateIpAddressAllocateIPAddressPayload includes the requested fields of the GraphQL type AllocateIPAddressPayload.
 type AllocateIpAddressAllocateIpAddressAllocateIPAddressPayload struct {
 	IpAddress AllocateIpAddressAllocateIpAddressAllocateIPAddressPayloadIpAddressIPAddress `json:"ipAddress"`
+	App       AllocateIpAddressAllocateIpAddressAllocateIPAddressPayloadApp                `json:"app"`
 }
 
 // GetIpAddress returns AllocateIpAddressAllocateIpAddressAllocateIPAddressPayload.IpAddress, and is useful for accessing the field via an interface.
 func (v *AllocateIpAddressAllocateIpAddressAllocateIPAddressPayload) GetIpAddress() AllocateIpAddressAllocateIpAddressAllocateIPAddressPayloadIpAddressIPAddress {
 	return v.IpAddress
+}
+
+// GetApp returns AllocateIpAddressAllocateIpAddressAllocateIPAddressPayload.App, and is useful for accessing the field via an interface.
+func (v *AllocateIpAddressAllocateIpAddressAllocateIPAddressPayload) GetApp() AllocateIpAddressAllocateIpAddressAllocateIPAddressPayloadApp {
+	return v.App
+}
+
+// AllocateIpAddressAllocateIpAddressAllocateIPAddressPayloadApp includes the requested fields of the GraphQL type App.
+type AllocateIpAddressAllocateIpAddressAllocateIPAddressPayloadApp struct {
+	SharedIpAddress string `json:"sharedIpAddress"`
+}
+
+// GetSharedIpAddress returns AllocateIpAddressAllocateIpAddressAllocateIPAddressPayloadApp.SharedIpAddress, and is useful for accessing the field via an interface.
+func (v *AllocateIpAddressAllocateIpAddressAllocateIPAddressPayloadApp) GetSharedIpAddress() string {
+	return v.SharedIpAddress
 }
 
 // AllocateIpAddressAllocateIpAddressAllocateIPAddressPayloadIpAddressIPAddress includes the requested fields of the GraphQL type IPAddress.
@@ -944,6 +960,7 @@ type IPAddressType string
 
 const (
 	IPAddressTypeV4        IPAddressType = "v4"
+	IPAddressTypeSharedV4  IPAddressType = "shared_v4"
 	IPAddressTypeV6        IPAddressType = "v6"
 	IPAddressTypePrivateV6 IPAddressType = "private_v6"
 )
@@ -1439,11 +1456,19 @@ func (v *__OrganizationInput) GetSlug() string { return v.Slug }
 
 // __ReleaseIpAddressInput is used internally by genqlient
 type __ReleaseIpAddressInput struct {
+	AppId     string `json:"appId"`
 	AddressId string `json:"addressId"`
+	Ip        string `json:"ip"`
 }
+
+// GetAppId returns __ReleaseIpAddressInput.AppId, and is useful for accessing the field via an interface.
+func (v *__ReleaseIpAddressInput) GetAppId() string { return v.AppId }
 
 // GetAddressId returns __ReleaseIpAddressInput.AddressId, and is useful for accessing the field via an interface.
 func (v *__ReleaseIpAddressInput) GetAddressId() string { return v.AddressId }
+
+// GetIp returns __ReleaseIpAddressInput.Ip, and is useful for accessing the field via an interface.
+func (v *__ReleaseIpAddressInput) GetIp() string { return v.Ip }
 
 // __RemoveWireguardPeerInput is used internally by genqlient
 type __RemoveWireguardPeerInput struct {
@@ -1582,6 +1607,9 @@ mutation AllocateIpAddress ($app: ID!, $region: String, $addrType: IPAddressType
 			type
 			address
 			region
+		}
+		app {
+			sharedIpAddress
 		}
 	}
 }
@@ -2112,8 +2140,8 @@ func OrgsQuery(
 
 // The query or mutation executed by ReleaseIpAddress.
 const ReleaseIpAddress_Operation = `
-mutation ReleaseIpAddress ($addressId: ID!) {
-	releaseIpAddress(input: {ipAddressId:$addressId}) {
+mutation ReleaseIpAddress ($appId: ID!, $addressId: ID!, $ip: String!) {
+	releaseIpAddress(input: {appId:$appId,ipAddressId:$addressId,ip:$ip}) {
 		app {
 			name
 		}
@@ -2124,13 +2152,17 @@ mutation ReleaseIpAddress ($addressId: ID!) {
 func ReleaseIpAddress(
 	ctx context.Context,
 	client graphql.Client,
+	appId string,
 	addressId string,
+	ip string,
 ) (*ReleaseIpAddressResponse, error) {
 	req := &graphql.Request{
 		OpName: "ReleaseIpAddress",
 		Query:  ReleaseIpAddress_Operation,
 		Variables: &__ReleaseIpAddressInput{
+			AppId:     appId,
 			AddressId: addressId,
+			Ip:        ip,
 		},
 	}
 	var err error

@@ -21,6 +21,7 @@ description: |-
 
 ### Optional
 
+- `enable_shared_ip_address` (Boolean) Assign a shared ipv4 address to the app
 - `org` (String) The name of the organization to generate the app in, ex: `personal` (your initial org)
 
 ### Read-Only
@@ -28,4 +29,4 @@ description: |-
 - `appurl` (String)
 - `id` (String) The ID of this resource.
 - `orgid` (String)
-- `sharedipaddress` (String) A default shared ipv4 address automatically attached when no dedicated ipv4 address is created
+- `sharedipaddress` (String) A shared ipv4 address, automatically attached in certain conditions or if explicitly requested

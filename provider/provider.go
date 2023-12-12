@@ -79,15 +79,13 @@ func (p *flyProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		EnableTracing: enableTracing,
 		Token:         token,
 		RestBaseUrl:   restBaseUrl,
-		GraphqlClient: utils.P(graphql.NewClient("https://api.fly.io/graphql", &http.Client{
+		GraphqlClient: graphql.NewClient("https://api.fly.io/graphql", &http.Client{
 			Timeout: 60 * time.Second,
-			Transport: &utils.Transport{
-				UnderlyingTransport: http.DefaultTransport,
-				Token:               token,
-				Ctx:                 ctx,
-				EnableDebugTrace:    enableTracing,
+			Transport: &utils.GraphqlTransport{
+				Token:            token,
+				EnableDebugTrace: enableTracing,
 			},
-		})),
+		}),
 	}
 
 	resp.DataSourceData = state

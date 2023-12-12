@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/andrewbaxter/terraform-provider-fly/graphql"
 	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
@@ -11,10 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
@@ -42,17 +41,19 @@ func (r *flyAppResource) Configure(_ context.Context, req resource.ConfigureRequ
 }
 
 type flyAppResourceData struct {
-	Name            types.String `tfsdk:"name"`
-	Org             types.String `tfsdk:"org"`
-	OrgId           types.String `tfsdk:"orgid"`
-	AppUrl          types.String `tfsdk:"appurl"`
-	Id              types.String `tfsdk:"id"`
-	SharedIpAddress types.String `tfsdk:"sharedipaddress"`
+	Name                  types.String `tfsdk:"name"`
+	Org                   types.String `tfsdk:"org"`
+	OrgId                 types.String `tfsdk:"orgid"`
+	AppUrl                types.String `tfsdk:"appurl"`
+	Id                    types.String `tfsdk:"id"`
+	EnableSharedIpAddress types.Bool   `tfsdk:"enable_shared_ip_address"`
+	SharedIpAddress       types.String `tfsdk:"sharedipaddress"`
 }
 
 func (r *flyAppResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			// Key
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of application",
 				Required:            true,
@@ -68,6 +69,16 @@ func (r *flyAppResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+
+			// RW
+			"enable_shared_ip_address": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+				MarkdownDescription: "Assign a shared ipv4 address to the app",
+			},
+
+			// RO
 			"orgid": schema.StringAttribute{
 				Computed: true,
 			},
@@ -90,13 +101,12 @@ func (r *flyAppResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	if data.Org.IsUnknown() {
-		defaultOrg, err := utils.GetDefaultOrg(ctx, *r.state.GraphqlClient)
+		defaultOrg, err := utils.GetDefaultOrg(ctx, r.state.GraphqlClient)
 		if err != nil {
 			resp.Diagnostics.AddError("Could not detect default organization", err.Error())
 			return
@@ -104,26 +114,31 @@ func (r *flyAppResource) Create(ctx context.Context, req resource.CreateRequest,
 		data.OrgId = types.StringValue(defaultOrg.Id)
 		data.Org = types.StringValue(defaultOrg.Name)
 	} else {
-		org, err := graphql.Organization(ctx, *r.state.GraphqlClient, data.Org.ValueString())
+		org, err := graphql.Organization(ctx, r.state.GraphqlClient, data.Org.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Could not resolve organization", err.Error())
 			return
 		}
 		data.OrgId = types.StringValue(org.Organization.Id)
 	}
-	mresp, err := graphql.CreateAppMutation(ctx, *r.state.GraphqlClient, data.Name.ValueString(), data.OrgId.ValueString())
+	name := data.Name.ValueString()
+	org := data.OrgId.ValueString()
+	mresp, err := graphql.CreateAppMutation(ctx, r.state.GraphqlClient, name, org)
 	if err != nil {
-		resp.Diagnostics.AddError("Create app failed", err.Error())
+		utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error creating app (name [%s], org %s)", name, org)
 		return
 	}
+	data.OrgId = types.StringValue(mresp.CreateApp.App.Organization.Id)
+	data.AppUrl = types.StringValue(mresp.CreateApp.App.AppUrl)
+	data.Id = types.StringValue(mresp.CreateApp.App.Id)
 
-	data = flyAppResourceData{
-		Org:             types.StringValue(mresp.CreateApp.App.Organization.Slug),
-		OrgId:           types.StringValue(mresp.CreateApp.App.Organization.Id),
-		Name:            types.StringValue(mresp.CreateApp.App.Name),
-		AppUrl:          types.StringValue(mresp.CreateApp.App.AppUrl),
-		Id:              types.StringValue(mresp.CreateApp.App.Id),
-		SharedIpAddress: types.StringValue(mresp.CreateApp.App.SharedIpAddress),
+	if data.EnableSharedIpAddress.ValueBool() {
+		mresp2, err := graphql.AllocateIpAddress(ctx, r.state.GraphqlClient, name, "global", "shared_v4")
+		if err != nil {
+			utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error allocating shared ipv4 address (app [%s])", name)
+			return
+		}
+		data.SharedIpAddress = types.StringValue(mresp2.AllocateIpAddress.App.SharedIpAddress)
 	}
 
 	diags = resp.State.Set(ctx, &data)
@@ -134,37 +149,25 @@ func (r *flyAppResource) Create(ctx context.Context, req resource.CreateRequest,
 }
 
 func (r *flyAppResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state flyAppResourceData
-
-	diags := req.State.Get(ctx, &state)
+	var data flyAppResourceData
+	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	query, err := graphql.GetFullApp(ctx, *r.state.GraphqlClient, state.Name.ValueString())
-	var errList gqlerror.List
-	if errors.As(err, &errList) {
-		for _, err := range errList {
-			if err.Message == "Could not resolve " {
-				return
-			}
-			resp.Diagnostics.AddError(err.Message, err.Path.String())
-		}
-	} else if err != nil {
-		resp.Diagnostics.AddError("Read: query failed", err.Error())
+	name := data.Name.ValueString()
+	query, err := graphql.GetFullApp(ctx, r.state.GraphqlClient, name)
+	if err != nil {
+		utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error looking up app (name [%s])", name)
 		return
 	}
 
-	data := flyAppResourceData{
-		Name:            types.StringValue(query.App.Name),
-		Org:             types.StringValue(query.App.Organization.Slug),
-		OrgId:           types.StringValue(query.App.Organization.Id),
-		AppUrl:          types.StringValue(query.App.AppUrl),
-		Id:              types.StringValue(query.App.Id),
-		SharedIpAddress: types.StringValue(query.App.SharedIpAddress),
-	}
+	data.Org = types.StringValue(query.App.Organization.Slug)
+	data.OrgId = types.StringValue(query.App.Organization.Id)
+	data.AppUrl = types.StringValue(query.App.AppUrl)
+	data.Id = types.StringValue(query.App.Id)
+	data.SharedIpAddress = types.StringValue(query.App.SharedIpAddress)
 
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
@@ -187,17 +190,21 @@ func (r *flyAppResource) Update(ctx context.Context, req resource.UpdateRequest,
 	diags = resp.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 
-	tflog.Info(ctx, fmt.Sprintf("existing: %+v, new: %+v", state, plan))
+	enableSharedIp := plan.EnableSharedIpAddress.ValueBool()
+	if !plan.EnableSharedIpAddress.IsNull() && enableSharedIp != state.EnableSharedIpAddress.ValueBool() {
+		if enableSharedIp {
 
-	if !plan.Org.IsUnknown() && plan.Org.ValueString() != state.Org.ValueString() {
-		resp.Diagnostics.AddError("Can't mutate org of existing app", "Can't switch org"+state.Org.ValueString()+" to "+plan.Org.ValueString())
+		} else {
+			_, err := graphql.ReleaseIpAddress(ctx, r.state.GraphqlClient, plan.Name.ValueString(), "", state.SharedIpAddress.ValueString())
+			if err != nil {
+				utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error deleting shared ip address (app [%s], addr [%s])", plan.Name.ValueString(), plan.SharedIpAddress.ValueString())
+				return
+			}
+		}
 	}
-	if !plan.Name.IsNull() && plan.Name.ValueString() != state.Name.ValueString() {
-		resp.Diagnostics.AddError("Can't mutate Name of existing app", "Can't switch name "+state.Name.ValueString()+" to "+plan.Name.ValueString())
-	}
 
-	resp.State.Set(ctx, state)
-
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -209,7 +216,7 @@ func (r flyAppResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	_, err := graphql.DeleteAppMutation(ctx, *r.state.GraphqlClient, data.Name.ValueString())
+	_, err := graphql.DeleteAppMutation(ctx, r.state.GraphqlClient, data.Name.ValueString())
 	var errList gqlerror.List
 	if errors.As(err, &errList) {
 		for _, err := range errList {
@@ -221,10 +228,6 @@ func (r flyAppResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	resp.State.RemoveResource(ctx)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r flyAppResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

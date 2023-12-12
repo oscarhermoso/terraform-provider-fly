@@ -76,9 +76,11 @@ func (d *volumeDataSourceType) Schema(_ context.Context, _ datasource.SchemaRequ
 
 func (d *volumeDataSourceType) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data volumeDataSourceOutput
-
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	id := data.Id.ValueString()
 	app := data.Appid.ValueString()
@@ -99,10 +101,9 @@ func (d *volumeDataSourceType) Read(ctx context.Context, req datasource.ReadRequ
 		Encrypted: types.BoolValue(query.Encrypted),
 	}
 
+	diags = resp.State.Set(ctx, &data)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	diags = resp.State.Set(ctx, &data)
-	resp.Diagnostics.Append(diags...)
 }

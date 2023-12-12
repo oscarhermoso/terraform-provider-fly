@@ -85,8 +85,11 @@ func (r *flyCertResource) Create(ctx context.Context, req resource.CreateRequest
 
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	q, err := graphql.AddCertificate(ctx, *r.state.GraphqlClient, data.Appid.ValueString(), data.Hostname.ValueString())
+	q, err := graphql.AddCertificate(ctx, r.state.GraphqlClient, data.Appid.ValueString(), data.Hostname.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create cert", err.Error())
 		return
@@ -113,14 +116,16 @@ func (r *flyCertResource) Create(ctx context.Context, req resource.CreateRequest
 
 func (r *flyCertResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data flyCertResourceData
-
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	hostname := data.Hostname.ValueString()
 	app := data.Appid.ValueString()
 
-	query, err := graphql.GetCertificate(ctx, *r.state.GraphqlClient, app, hostname)
+	query, err := graphql.GetCertificate(ctx, r.state.GraphqlClient, app, hostname)
 	var errList gqlerror.List
 	if errors.As(err, &errList) {
 		for _, err := range errList {
@@ -143,7 +148,6 @@ func (r *flyCertResource) Read(ctx context.Context, req resource.ReadRequest, re
 		Hostname:                  types.StringValue(query.App.Certificate.Hostname),
 		Check:                     types.BoolValue(query.App.Certificate.Check),
 	}
-
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -162,18 +166,17 @@ func (r *flyCertResource) Delete(ctx context.Context, req resource.DeleteRequest
 
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	_, err := graphql.DeleteCertificate(ctx, *r.state.GraphqlClient, data.Appid.ValueString(), data.Hostname.ValueString())
+	_, err := graphql.DeleteCertificate(ctx, r.state.GraphqlClient, data.Appid.ValueString(), data.Hostname.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Delete cert failed", err.Error())
 		return
 	}
 
 	resp.State.RemoveResource(ctx)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r *flyCertResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

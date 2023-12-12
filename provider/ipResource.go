@@ -2,21 +2,21 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/andrewbaxter/terraform-provider-fly/graphql"
 	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
+	"github.com/andrewbaxter/terraform-provider-fly/utils"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 var _ resource.Resource = &flyIpResource{}
@@ -52,10 +52,10 @@ type flyIpResourceData struct {
 
 func (r *flyIpResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Fly ip resource",
 		Attributes: map[string]schema.Attribute{
 			"address": schema.StringAttribute{
-				Computed: true,
+				MarkdownDescription: "Empty if using `shared_v4`",
+				Computed:            true,
 			},
 			"app": schema.StringAttribute{
 				MarkdownDescription: APP_DESC,
@@ -69,8 +69,11 @@ func (r *flyIpResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Computed:            true,
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "`v4`, `v4_shared`, or `v6`",
+				MarkdownDescription: ADDRESS_TYPE_DESC,
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(ADDRESS_TYPE_REGEX, ADDRESS_TYPE_DESC),
+				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -90,28 +93,30 @@ func (r *flyIpResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 
 func (r *flyIpResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data flyIpResourceData
-
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
-
-	tflog.Info(ctx, fmt.Sprintf("%+v", data))
-
-	q, err := graphql.AllocateIpAddress(ctx, *r.state.GraphqlClient, data.Appid.ValueString(), data.Region.ValueString(), graphql.IPAddressType(data.Type.ValueString()))
-	tflog.Info(ctx, fmt.Sprintf("query res in create ip: %+v", q))
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to create ip addr", err.Error())
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	data = flyIpResourceData{
-		Id:      types.StringValue(q.AllocateIpAddress.IpAddress.Id),
-		Appid:   types.StringValue(data.Appid.ValueString()),
-		Region:  types.StringValue(q.AllocateIpAddress.IpAddress.Region),
-		Type:    types.StringValue(string(q.AllocateIpAddress.IpAddress.Type)),
-		Address: types.StringValue(q.AllocateIpAddress.IpAddress.Address),
+	app := data.Appid.ValueString()
+	region := data.Region.ValueString()
+	type_ := graphql.IPAddressType(data.Type.ValueString())
+	q, err := graphql.AllocateIpAddress(ctx, r.state.GraphqlClient, app, region, type_)
+	if err != nil {
+		utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error creating ip address (app [%s], region [%s], type [%s])", app, region, type_)
+		return
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("%+v", data))
+	data.Id = types.StringValue(q.AllocateIpAddress.IpAddress.Id)
+	data.Appid = types.StringValue(data.Appid.ValueString())
+	data.Address = types.StringValue(data.Address.ValueString())
+	if q.AllocateIpAddress.IpAddress.Region != "" {
+		data.Region = types.StringValue(q.AllocateIpAddress.IpAddress.Region)
+	}
+	if q.AllocateIpAddress.IpAddress.Type != "" {
+		data.Type = types.StringValue(string(q.AllocateIpAddress.IpAddress.Type))
+	}
 
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
@@ -122,35 +127,27 @@ func (r *flyIpResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 func (r flyIpResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data flyIpResourceData
-
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
-
-	addr := data.Address.ValueString()
-	app := data.Appid.ValueString()
-
-	query, err := graphql.IpAddressQuery(ctx, *r.state.GraphqlClient, app, addr)
-	tflog.Info(ctx, fmt.Sprintf("Query res: for %s %s %+v", app, addr, query))
-	var errList gqlerror.List
-	if errors.As(err, &errList) {
-		for _, err := range errList {
-			tflog.Info(ctx, "IN HERE")
-			if err.Message == "Could not resolve " {
-				return
-			}
-			resp.Diagnostics.AddError(err.Message, err.Path.String())
-		}
-	} else if err != nil {
-		resp.Diagnostics.AddError("Read: query failed", err.Error())
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	data = flyIpResourceData{
-		Id:      types.StringValue(query.App.IpAddress.Id),
-		Appid:   types.StringValue(data.Appid.ValueString()),
-		Region:  types.StringValue(query.App.IpAddress.Region),
-		Type:    types.StringValue(string(query.App.IpAddress.Type)),
-		Address: types.StringValue(query.App.IpAddress.Address),
+	addr := data.Address.ValueString()
+	app := data.Appid.ValueString()
+	query, err := graphql.IpAddressQuery(ctx, r.state.GraphqlClient, app, addr)
+	if err != nil {
+		utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error looking up ip address (app [%s], addr [%s])", app, addr)
+		return
+	}
+
+	data.Id = types.StringValue(query.App.IpAddress.Id)
+	data.Address = types.StringValue(query.App.IpAddress.Address)
+	if query.App.IpAddress.Region != "" {
+		data.Region = types.StringValue(query.App.IpAddress.Region)
+	}
+	if query.App.IpAddress.Type != "" {
+		data.Type = types.StringValue(string(query.App.IpAddress.Type))
 	}
 
 	diags = resp.State.Set(ctx, &data)
@@ -161,7 +158,10 @@ func (r flyIpResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 }
 
 func (r *flyIpResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	resp.Diagnostics.AddError("The fly api does not allow updating ips once created", "Try deleting and then recreating the ip with new options")
+	resp.Diagnostics.AddError(
+		"The fly api does not allow updating ips once created",
+		"Try deleting and then recreating the ip with new options",
+	)
 	return
 }
 
@@ -170,20 +170,19 @@ func (r *flyIpResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	if !data.Id.IsUnknown() && !data.Id.IsNull() && data.Id.ValueString() != "" {
-		_, err := graphql.ReleaseIpAddress(ctx, *r.state.GraphqlClient, data.Id.ValueString())
+		_, err := graphql.ReleaseIpAddress(ctx, r.state.GraphqlClient, data.Appid.String(), data.Id.ValueString(), "")
 		if err != nil {
-			resp.Diagnostics.AddError("Release ip failed", err.Error())
+			utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error deleting ip address (id [%s])", data.Id.ValueString())
 			return
 		}
 	}
 
 	resp.State.RemoveResource(ctx)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r *flyIpResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -191,7 +190,7 @@ func (r *flyIpResource) ImportState(ctx context.Context, req resource.ImportStat
 
 	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
 		resp.Diagnostics.AddError(
-			"Unexpected Import Identifier",
+			"Unexpected import identifier when trying to import ip address",
 			fmt.Sprintf("Expected import identifier with format: app_id,ip_address. Got: %q", req.ID),
 		)
 		return

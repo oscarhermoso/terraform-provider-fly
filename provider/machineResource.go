@@ -443,16 +443,13 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	var state flyMachineResourceData
-
 	diags = resp.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -525,6 +522,9 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 	// env := utils.KVToTfMap(updatedMachine.Config.Env, types.StringType)
 	env, diags := types.MapValueFrom(ctx, types.StringType, updatedMachine.Config.Env)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tfservices := ServicesToTfServices(updatedMachine.Config.Services)
 
@@ -566,7 +566,8 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 		tflog.Info(ctx, "Waiting errored")
 	}
 
-	resp.State.Set(ctx, state)
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -574,23 +575,21 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 
 func (r *flyMachineResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data flyMachineResourceData
-
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	machineApi := utils.NewMachineApi(ctx, r.state)
 
 	err := machineApi.DeleteMachine(data.App.ValueString(), data.Id.ValueString(), 50)
-
 	if err != nil {
 		resp.Diagnostics.AddError("Machine delete failed", err.Error())
 		return
 	}
 
 	resp.State.RemoveResource(ctx)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (mr flyMachineResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

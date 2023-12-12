@@ -2,16 +2,15 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/andrewbaxter/terraform-provider-fly/graphql"
 	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
+	"github.com/andrewbaxter/terraform-provider-fly/utils"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces
@@ -48,10 +47,10 @@ type ipDataSourceOutput struct {
 
 func (d *ipDataSourceType) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Fly ip data source",
 		Attributes: map[string]schema.Attribute{
 			"address": schema.StringAttribute{
-				Required: true,
+				MarkdownDescription: "Empty if using `shared_v4`",
+				Computed:            true,
 			},
 			"app": schema.StringAttribute{
 				MarkdownDescription: APP_DESC,
@@ -59,10 +58,10 @@ func (d *ipDataSourceType) Schema(_ context.Context, _ datasource.SchemaRequest,
 			},
 			"id": schema.StringAttribute{
 				MarkdownDescription: ID_DESC,
-				Computed:            true,
+				Required:            true,
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "v4 or v6",
+				MarkdownDescription: "`v4`, `v6`, or `private_v6`",
 				Computed:            true,
 			},
 			"region": schema.StringAttribute{
@@ -75,30 +74,18 @@ func (d *ipDataSourceType) Schema(_ context.Context, _ datasource.SchemaRequest,
 
 func (d *ipDataSourceType) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data ipDataSourceOutput
-
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	addr := data.Address.ValueString()
 	app := data.Appid.ValueString()
-
-	query, err := graphql.IpAddressQuery(ctx, *d.state.GraphqlClient, app, addr)
+	query, err := graphql.IpAddressQuery(ctx, d.state.GraphqlClient, app, addr)
 	tflog.Info(ctx, fmt.Sprintf("Query res: for %s %s %+v", app, addr, query))
-	var errList gqlerror.List
-	if errors.As(err, &errList) {
-		for _, err := range errList {
-			tflog.Info(ctx, "IN HERE")
-			if err.Message == "Could not resolve " {
-				return
-			}
-			resp.Diagnostics.AddError(err.Message, err.Path.String())
-		}
-	} else if err != nil {
-		resp.Diagnostics.AddError("Read: query failed", err.Error())
+	if err != nil {
+		utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error looking up ip address (app [%s], addr [%s])", app, addr)
 		return
 	}
 
@@ -106,15 +93,12 @@ func (d *ipDataSourceType) Read(ctx context.Context, req datasource.ReadRequest,
 	if region == "" {
 		region = "global"
 	}
-
-	data = ipDataSourceOutput{
-		Id:      types.StringValue(query.App.IpAddress.Id),
-		Appid:   data.Appid,
-		Region:  types.StringValue(region),
-		Type:    types.StringValue(string(query.App.IpAddress.Type)),
-		Address: types.StringValue(query.App.IpAddress.Address),
-	}
+	data.Region = types.StringValue(region)
+	data.Address = types.StringValue(query.App.IpAddress.Address)
 
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }

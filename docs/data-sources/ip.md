@@ -3,12 +3,12 @@
 page_title: "fly_ip Data Source - fly"
 subcategory: ""
 description: |-
-  Fly ip data source
+  
 ---
 
 # fly_ip (Data Source)
 
-Fly ip data source
+
 
 
 
@@ -17,11 +17,11 @@ Fly ip data source
 
 ### Required
 
-- `address` (String)
 - `app` (String) The App this resource will be created in
+- `id` (String) A fly-generated ID
 
 ### Read-Only
 
-- `id` (String) A fly-generated ID
+- `address` (String) Empty if using `shared_v4`
 - `region` (String) Fly region, ex `ord`, `sin`, `mad`
-- `type` (String) v4 or v6
+- `type` (String) `v4`, `v6`, or `private_v6`

@@ -5,6 +5,7 @@ import (
 
 	"github.com/andrewbaxter/terraform-provider-fly/graphql"
 	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
+	"github.com/andrewbaxter/terraform-provider-fly/utils"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -92,16 +93,15 @@ func (d *appDataSourceType) Read(ctx context.Context, req datasource.ReadRequest
 
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	appName := data.Name.ValueString()
 
-	queryresp, err := graphql.GetFullApp(ctx, *d.state.GraphqlClient, appName)
+	queryresp, err := graphql.GetFullApp(ctx, d.state.GraphqlClient, appName)
 	if err != nil {
-		resp.Diagnostics.AddError("Query failed", err.Error())
+		utils.HandleGraphqlErrors(&resp.Diagnostics, err, "Error looking up app (name [%s])", appName)
 		return
 	}
 
@@ -124,8 +124,9 @@ func (d *appDataSourceType) Read(ctx context.Context, req datasource.ReadRequest
 		a.Ipaddresses = append(a.Ipaddresses, s.Address)
 	}
 
-	data = a
-
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &a)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }

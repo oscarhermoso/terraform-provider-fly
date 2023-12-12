@@ -3,12 +3,12 @@
 page_title: "fly_ip Resource - fly"
 subcategory: ""
 description: |-
-  Fly ip resource
+  
 ---
 
 # fly_ip (Resource)
 
-Fly ip resource
+
 
 
 
@@ -18,7 +18,7 @@ Fly ip resource
 ### Required
 
 - `app` (String) The App this resource will be created in
-- `type` (String) `v4` or `v6`
+- `type` (String) One of the following values (by regex): `^(v4|v6|private_v6)$`
 
 ### Optional
 
@@ -26,5 +26,5 @@ Fly ip resource
 
 ### Read-Only
 
-- `address` (String)
+- `address` (String) Empty if using `shared_v4`
 - `id` (String) A fly-generated ID

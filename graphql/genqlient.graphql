@@ -157,11 +157,14 @@ mutation AllocateIpAddress(
       address
       region
     }
+    app {
+      sharedIpAddress
+    }
   }
 }
 
-mutation ReleaseIpAddress($addressId: ID!) {
-  releaseIpAddress(input: { ipAddressId: $addressId }) {
+mutation ReleaseIpAddress($appId: ID!, $addressId: ID!, $ip: String!) {
+  releaseIpAddress(input: { appId: $appId, ipAddressId: $addressId, ip: $ip }) {
     app {
       name
     }

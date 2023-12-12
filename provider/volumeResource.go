@@ -92,6 +92,9 @@ func (r *flyVolumeResource) Create(ctx context.Context, req resource.CreateReque
 
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	machineApi := utils.NewMachineApi(ctx, r.state)
 	q, err := machineApi.CreateVolume(ctx, data.Name.ValueString(), data.Appid.ValueString(), data.Region.ValueString(), int(data.Size.ValueInt64()))
@@ -100,7 +103,6 @@ func (r *flyVolumeResource) Create(ctx context.Context, req resource.CreateReque
 		tflog.Warn(ctx, fmt.Sprintf("%+v", err))
 		return
 	}
-	tflog.Info(ctx, fmt.Sprintf("%+v", q))
 
 	data = flyVolumeResourceData{
 		Id:        types.StringValue(q.ID),
@@ -110,8 +112,6 @@ func (r *flyVolumeResource) Create(ctx context.Context, req resource.CreateReque
 		Region:    types.StringValue(q.Region),
 		Encrypted: types.BoolValue(q.Encrypted),
 	}
-
-	tflog.Info(ctx, fmt.Sprintf("%+v", data))
 
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
@@ -125,6 +125,9 @@ func (r *flyVolumeResource) Read(ctx context.Context, req resource.ReadRequest, 
 
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	id := data.Id.ValueString()
 
@@ -167,6 +170,9 @@ func (r *flyVolumeResource) Delete(ctx context.Context, req resource.DeleteReque
 
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	if !data.Id.IsUnknown() && !data.Id.IsNull() && data.Id.ValueString() != "" {
 		machineApi := utils.NewMachineApi(ctx, r.state)
@@ -178,10 +184,6 @@ func (r *flyVolumeResource) Delete(ctx context.Context, req resource.DeleteReque
 	}
 
 	resp.State.RemoveResource(ctx)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (vr flyVolumeResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

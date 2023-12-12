@@ -7,7 +7,7 @@ import (
 type State struct {
 	Configured    bool
 	Version       string
-	GraphqlClient *graphql.Client
+	GraphqlClient graphql.Client
 	RestBaseUrl   string
 	EnableTracing bool
 	// Rest API token

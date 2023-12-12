@@ -42,11 +42,12 @@ func (r *flyAppResource) Configure(_ context.Context, req resource.ConfigureRequ
 }
 
 type flyAppResourceData struct {
-	Name   types.String `tfsdk:"name"`
-	Org    types.String `tfsdk:"org"`
-	OrgId  types.String `tfsdk:"orgid"`
-	AppUrl types.String `tfsdk:"appurl"`
-	Id     types.String `tfsdk:"id"`
+	Name            types.String `tfsdk:"name"`
+	Org             types.String `tfsdk:"org"`
+	OrgId           types.String `tfsdk:"orgid"`
+	AppUrl          types.String `tfsdk:"appurl"`
+	Id              types.String `tfsdk:"id"`
+	SharedIpAddress types.String `tfsdk:"sharedipaddress"`
 }
 
 func (r *flyAppResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -75,6 +76,10 @@ func (r *flyAppResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"appurl": schema.StringAttribute{
 				Computed: true,
+			},
+			"sharedipaddress": schema.StringAttribute{
+				MarkdownDescription: SHAREDIP_DESC,
+				Computed:            true,
 			},
 		},
 	}
@@ -113,11 +118,12 @@ func (r *flyAppResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	data = flyAppResourceData{
-		Org:    types.StringValue(mresp.CreateApp.App.Organization.Slug),
-		OrgId:  types.StringValue(mresp.CreateApp.App.Organization.Id),
-		Name:   types.StringValue(mresp.CreateApp.App.Name),
-		AppUrl: types.StringValue(mresp.CreateApp.App.AppUrl),
-		Id:     types.StringValue(mresp.CreateApp.App.Id),
+		Org:             types.StringValue(mresp.CreateApp.App.Organization.Slug),
+		OrgId:           types.StringValue(mresp.CreateApp.App.Organization.Id),
+		Name:            types.StringValue(mresp.CreateApp.App.Name),
+		AppUrl:          types.StringValue(mresp.CreateApp.App.AppUrl),
+		Id:              types.StringValue(mresp.CreateApp.App.Id),
+		SharedIpAddress: types.StringValue(mresp.CreateApp.App.SharedIpAddress),
 	}
 
 	diags = resp.State.Set(ctx, &data)
@@ -152,11 +158,12 @@ func (r *flyAppResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	data := flyAppResourceData{
-		Name:   types.StringValue(query.App.Name),
-		Org:    types.StringValue(query.App.Organization.Slug),
-		OrgId:  types.StringValue(query.App.Organization.Id),
-		AppUrl: types.StringValue(query.App.AppUrl),
-		Id:     types.StringValue(query.App.Id),
+		Name:            types.StringValue(query.App.Name),
+		Org:             types.StringValue(query.App.Organization.Slug),
+		OrgId:           types.StringValue(query.App.Organization.Id),
+		AppUrl:          types.StringValue(query.App.AppUrl),
+		Id:              types.StringValue(query.App.Id),
+		SharedIpAddress: types.StringValue(query.App.SharedIpAddress),
 	}
 
 	diags = resp.State.Set(ctx, &data)

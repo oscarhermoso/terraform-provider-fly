@@ -12,4 +12,5 @@ var (
 	NAME_DESC      = fmt.Sprintf("A user-provided identifier, matching regexp `%s`", NAME_REGEX_RAW)
 	APP_DESC       = "The App this resource will be created in"
 	REGION_DESC    = "Fly region, ex `ord`, `sin`, `mad`"
+	SHAREDIP_DESC  = "A default shared ipv4 address automatically attached when no dedicated ipv4 address is created"
 )

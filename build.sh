@@ -1,4 +1,5 @@
 #!/usr/bin/bash -xeu
+go run -modfile tools.mod github.com/Khan/genqlient graphql/genqlient.yaml
 go build
 rm -rf docs
 mkdir docs

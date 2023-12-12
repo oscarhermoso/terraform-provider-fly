@@ -77,7 +77,8 @@ func (d *appDataSourceType) Schema(_ context.Context, _ datasource.SchemaRequest
 				ElementType: types.StringType,
 			},
 			"sharedipaddress": schema.StringAttribute{
-				Computed: true,
+				MarkdownDescription: SHAREDIP_DESC,
+				Computed:            true,
 			},
 			"currentrelease": schema.StringAttribute{
 				Computed: true,

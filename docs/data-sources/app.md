@@ -28,5 +28,5 @@ description: |-
 - `hostname` (String)
 - `id` (String) The ID of this resource.
 - `ipaddresses` (List of String)
-- `sharedipaddress` (String)
+- `sharedipaddress` (String) A default shared ipv4 address automatically attached when no dedicated ipv4 address is created
 - `status` (String)

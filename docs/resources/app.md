@@ -28,3 +28,4 @@ description: |-
 - `appurl` (String)
 - `id` (String) The ID of this resource.
 - `orgid` (String)
+- `sharedipaddress` (String) A default shared ipv4 address automatically attached when no dedicated ipv4 address is created

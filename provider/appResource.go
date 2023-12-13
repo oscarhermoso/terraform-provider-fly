@@ -137,6 +137,8 @@ func (r *flyAppResource) Create(ctx context.Context, req resource.CreateRequest,
 			return
 		}
 		data.SharedIpAddress = types.StringValue(mresp2.AllocateIpAddress.App.SharedIpAddress)
+	} else {
+		data.SharedIpAddress = types.StringValue(mresp.CreateApp.App.SharedIpAddress)
 	}
 
 	diags = resp.State.Set(ctx, &data)

@@ -242,7 +242,7 @@ func TfServicesToServices(input []TfService) []machineapi.Service {
 func ServicesToTfServices(input []machineapi.Service) []TfService {
 	tfservices := make([]TfService, 0)
 	for _, s := range input {
-		var tfports []TfPort
+		tfports := []TfPort{}
 		for _, j := range s.Ports {
 			var handlers []types.String
 			for _, k := range j.Handlers {

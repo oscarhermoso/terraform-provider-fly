@@ -288,7 +288,7 @@ func (a *MachineAPI) GetVolume(ctx context.Context, id, app string) (*api.Volume
 	return &res, nil
 }
 
-func (a *MachineAPI) DeleteVolume(ctx context.Context, id, app string) error {
+func (a *MachineAPI) DeleteVolume(ctx context.Context, app string, id string) error {
 	_, err := a.HttpClient.R().SetContext(ctx).Delete(fmt.Sprintf("%s/v1/apps/%s/volumes/%s", a.baseUrl, app, id))
 	if err != nil {
 		return err

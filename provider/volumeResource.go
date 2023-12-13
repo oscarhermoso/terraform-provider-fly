@@ -8,11 +8,9 @@ import (
 	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
 	"github.com/andrewbaxter/terraform-provider-fly/utils"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -68,12 +66,6 @@ func (r *flyVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"name": schema.StringAttribute{
 				MarkdownDescription: NAME_DESC,
 				Required:            true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(
-						NAME_REGEX,
-						fmt.Sprintf("Must match `%s`", NAME_REGEX_RAW),
-					),
-				},
 			},
 			"region": schema.StringAttribute{
 				MarkdownDescription: REGION_DESC,

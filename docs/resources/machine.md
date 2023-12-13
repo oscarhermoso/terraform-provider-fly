@@ -32,7 +32,7 @@ description: |-
 - `exec` (List of String)
 - `memory` (Number) Amount of memory in MB. `256`, `512`, `1024`, ...
 - `mounts` (Attributes List) (see [below for nested schema](#nestedatt--mounts))
-- `name` (String) A user-provided identifier, matching regexp `^[a-z0-9-]+$`
+- `name` (String) A user-provided identifier
 - `services` (Attributes List) (see [below for nested schema](#nestedatt--services))
 
 ### Read-Only

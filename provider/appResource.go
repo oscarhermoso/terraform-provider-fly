@@ -208,6 +208,10 @@ func (r *flyAppResource) Update(ctx context.Context, req resource.UpdateRequest,
 		}
 	}
 
+	if !plan.AssignSharedIpAddress.IsNull() {
+		data.AssignSharedIpAddress = types.BoolValue(enableSharedIp)
+	}
+
 	diags = resp.State.Set(ctx, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

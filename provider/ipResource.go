@@ -110,7 +110,7 @@ func (r *flyIpResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	data.Id = types.StringValue(q.AllocateIpAddress.IpAddress.Id)
 	data.App = types.StringValue(data.App.ValueString())
-	data.Address = types.StringValue(data.Address.ValueString())
+	data.Address = types.StringValue(q.AllocateIpAddress.IpAddress.Address)
 	if q.AllocateIpAddress.IpAddress.Region != "" {
 		data.Region = types.StringValue(q.AllocateIpAddress.IpAddress.Region)
 	}

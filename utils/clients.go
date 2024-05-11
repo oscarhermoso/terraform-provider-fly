@@ -71,7 +71,7 @@ func (t *GraphqlTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 
 	resp, err := http.DefaultTransport.RoundTrip(req)
 	if resp != nil {
-		body, err1 := io.ReadAll(req.Body)
+		body, err1 := io.ReadAll(resp.Body)
 		if err1 != nil {
 			if err != nil {
 				return resp, err
@@ -86,7 +86,7 @@ func (t *GraphqlTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 			"body":    string(body),
 			"headers": resp.Header,
 		})
-		req.Body = io.NopCloser(bytes.NewBuffer(body))
+		resp.Body = io.NopCloser(bytes.NewBuffer(body))
 	}
 
 	return resp, err

@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/andrewbaxter/terraform-provider-fly/machineapi"
 	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
-	"github.com/andrewbaxter/terraform-provider-fly/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -54,10 +57,16 @@ func (r *flyVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: ID_DESC,
 				Computed:            true,
 				// Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"app": schema.StringAttribute{
 				MarkdownDescription: APP_DESC,
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"size": schema.Int64Attribute{
 				MarkdownDescription: "Size of volume in GB",
@@ -66,14 +75,24 @@ func (r *flyVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"name": schema.StringAttribute{
 				MarkdownDescription: NAME_DESC,
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"region": schema.StringAttribute{
 				MarkdownDescription: REGION_DESC,
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"encrypted": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+					boolplanmodifier.RequiresReplace(),
+				},
 			},
 		},
 	}
@@ -88,7 +107,7 @@ func (r *flyVolumeResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	machineApi := utils.NewMachineApi(ctx, r.state)
+	machineApi := machineapi.NewMachineApi(ctx, r.state)
 	q, err := machineApi.CreateVolume(ctx, data.Name.ValueString(), data.App.ValueString(), data.Region.ValueString(), int(data.Size.ValueInt64()))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create volume", err.Error())
@@ -129,21 +148,16 @@ func (r *flyVolumeResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 	app := data.App.ValueString()
 
-	machineApi := utils.NewMachineApi(ctx, r.state)
+	machineApi := machineapi.NewMachineApi(ctx, r.state)
 	query, err := machineApi.GetVolume(ctx, id, app)
 	if err != nil {
 		resp.Diagnostics.AddError("Query failed", err.Error())
 		return
 	}
 
-	data = flyVolumeResourceData{
-		Id:        types.StringValue(query.ID),
-		Name:      types.StringValue(query.Name),
-		Size:      types.Int64Value(int64(query.SizeGb)),
-		App:       types.StringValue(data.App.ValueString()),
-		Region:    types.StringValue(query.Region),
-		Encrypted: types.BoolValue(query.Encrypted),
-	}
+	data.Name = types.StringValue(query.Name)
+	data.Size = types.Int64Value(int64(query.SizeGb))
+	data.Encrypted = types.BoolValue(query.Encrypted)
 
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
@@ -153,8 +167,38 @@ func (r *flyVolumeResource) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 func (r *flyVolumeResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	resp.Diagnostics.AddError("The fly api does not allow updating volumes once created", "Try deleting and then recreating a volume with new options")
-	return
+	var current flyVolumeResourceData
+	diags := req.State.Get(ctx, &current)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	var new flyVolumeResourceData
+	diags = req.Plan.Get(ctx, &new)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	app := current.App.ValueString()
+	id := current.Id.ValueString()
+
+	newSize := new.Size.ValueInt64()
+	if newSize != current.Size.ValueInt64() {
+		machineApi := machineapi.NewMachineApi(ctx, r.state)
+		err := machineApi.ExtendVolume(ctx, app, id, int(newSize))
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Extending app [%s] volume [%s] failed", app, id), err.Error())
+			return
+		}
+		current.Size = new.Size
+	}
+
+	diags = resp.State.Set(ctx, current)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 func (r *flyVolumeResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -167,7 +211,7 @@ func (r *flyVolumeResource) Delete(ctx context.Context, req resource.DeleteReque
 	}
 
 	if !data.Id.IsUnknown() && !data.Id.IsNull() && data.Id.ValueString() != "" {
-		machineApi := utils.NewMachineApi(ctx, r.state)
+		machineApi := machineapi.NewMachineApi(ctx, r.state)
 		err := machineApi.DeleteVolume(ctx, data.App.ValueString(), data.Id.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError("Delete volume failed", err.Error())

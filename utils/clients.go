@@ -2,62 +2,26 @@ package utils
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"net/http"
 
-	machineapi "github.com/andrewbaxter/terraform-provider-fly/machineapi"
-	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
-
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-type tfLogger struct {
-	ctx context.Context
+type LoggingHttpTransport struct {
+	Inner http.RoundTripper
 }
 
-// Debugf implements req.Logger.
-func (l *tfLogger) Debugf(format string, v ...interface{}) {
-	tflog.Debug(l.ctx, fmt.Sprintf(format, v...))
-}
-
-// Errorf implements req.Logger.
-func (l *tfLogger) Errorf(format string, v ...interface{}) {
-	tflog.Error(l.ctx, fmt.Sprintf(format, v...))
-}
-
-// Warnf implements req.Logger.
-func (l *tfLogger) Warnf(format string, v ...interface{}) {
-	tflog.Warn(l.ctx, fmt.Sprintf(format, v...))
-}
-
-func NewMachineApi(ctx context.Context, state *providerstate.State) *machineapi.MachineAPI {
-	out := machineapi.NewMachineAPI(state.RestBaseUrl, state.Token)
-	out.HttpClient.SetLogger(&tfLogger{ctx: ctx})
-	out.HttpClient.EnableDebugLog()
-	if state.EnableTracing {
-		out.HttpClient.SetCommonHeader("Fly-Force-Trace", "true")
-		out.HttpClient.DevMode()
-	}
-	return out
-}
-
-type GraphqlTransport struct {
-	Token            string
-	EnableDebugTrace bool
-}
-
-func (t *GraphqlTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Add("Authorization", "Bearer "+t.Token)
-	if t.EnableDebugTrace {
-		req.Header.Add("Fly-Force-Trace", "true")
-	}
-
+func (t *LoggingHttpTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	{
-		body, err := io.ReadAll(req.Body)
-		if err != nil {
-			return nil, fmt.Errorf("Error reading request body: %s", err)
+		body := []byte{}
+		if req.Body != nil {
+			var err error
+			body, err = io.ReadAll(req.Body)
+			if err != nil {
+				return nil, fmt.Errorf("Error reading request body: %s", err)
+			}
 		}
 		tflog.Debug(req.Context(), "HTTP REQUEST", map[string]any{
 			"proto":   req.Proto,
@@ -69,7 +33,7 @@ func (t *GraphqlTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 		req.Body = io.NopCloser(bytes.NewBuffer(body))
 	}
 
-	resp, err := http.DefaultTransport.RoundTrip(req)
+	resp, err := t.Inner.RoundTrip(req)
 	if resp != nil {
 		body, err1 := io.ReadAll(resp.Body)
 		if err1 != nil {
@@ -90,4 +54,18 @@ func (t *GraphqlTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	}
 
 	return resp, err
+}
+
+type GraphqlTransport struct {
+	Inner            http.RoundTripper
+	Token            string
+	EnableDebugTrace bool
+}
+
+func (t *GraphqlTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Add("Authorization", "Bearer "+t.Token)
+	if t.EnableDebugTrace {
+		req.Header.Add("Fly-Force-Trace", "true")
+	}
+	return t.Inner.RoundTrip(req)
 }

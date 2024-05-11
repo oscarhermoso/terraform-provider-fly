@@ -3,8 +3,8 @@ package provider
 import (
 	"context"
 
+	"github.com/andrewbaxter/terraform-provider-fly/machineapi"
 	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
-	"github.com/andrewbaxter/terraform-provider-fly/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -85,7 +85,7 @@ func (d *volumeDataSourceType) Read(ctx context.Context, req datasource.ReadRequ
 	id := data.Id.ValueString()
 	app := data.App.ValueString()
 
-	machineApi := utils.NewMachineApi(ctx, d.state)
+	machineApi := machineapi.NewMachineApi(ctx, d.state)
 	query, err := machineApi.GetVolume(ctx, id, app)
 	if err != nil {
 		resp.Diagnostics.AddError("Query failed", err.Error())

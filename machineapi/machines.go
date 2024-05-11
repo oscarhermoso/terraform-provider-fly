@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
+	"github.com/andrewbaxter/terraform-provider-fly/utils"
 	hreq "github.com/imroc/req/v3"
 	"github.com/superfly/flyctl/api"
 )
@@ -116,8 +118,15 @@ type MachineLease struct {
 	}
 }
 
-func NewMachineAPI(endpoint string, token string) *MachineAPI {
+func NewMachineApi(ctx context.Context, state *providerstate.State) *MachineAPI {
+	endpoint := state.RestBaseUrl
+	token := state.Token
 	httpClient := hreq.C()
+	httpClient.Transport.WrapRoundTrip(func(rt http.RoundTripper) http.RoundTripper {
+		return &utils.LoggingHttpTransport{
+			Inner: rt,
+		}
+	})
 
 	httpClient.SetCommonHeader("Authorization", "Bearer "+token)
 	httpClient.SetTimeout(2 * time.Minute)
@@ -146,10 +155,15 @@ func NewMachineAPI(endpoint string, token string) *MachineAPI {
 		return nil
 	})
 
-	return &MachineAPI{
+	out := &MachineAPI{
 		HttpClient: httpClient,
 		baseUrl:    endpoint,
 	}
+	if state.EnableTracing {
+		out.HttpClient.SetCommonHeader("Fly-Force-Trace", "true")
+		out.HttpClient.DevMode()
+	}
+	return out
 }
 
 func (a *MachineAPI) LockMachine(app string, id string, timeout int) (*MachineLease, error) {
@@ -286,6 +300,16 @@ func (a *MachineAPI) GetVolume(ctx context.Context, id, app string) (*api.Volume
 	}
 
 	return &res, nil
+}
+
+func (a *MachineAPI) ExtendVolume(ctx context.Context, app string, id string, size int) error {
+	_, err := a.HttpClient.R().SetContext(ctx).SetBody(map[string]any{
+		"size_gb": size,
+	}).Put(fmt.Sprintf("%s/v1/apps/%s/volumes/%s/extend", a.baseUrl, app, id))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (a *MachineAPI) DeleteVolume(ctx context.Context, app string, id string) error {

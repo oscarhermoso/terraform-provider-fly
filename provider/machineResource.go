@@ -7,7 +7,6 @@ import (
 
 	"github.com/andrewbaxter/terraform-provider-fly/machineapi"
 	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
-	"github.com/andrewbaxter/terraform-provider-fly/utils"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -314,7 +313,7 @@ func (r *flyMachineResource) Create(ctx context.Context, req resource.CreateRequ
 		createReq.Config.Mounts = mounts
 	}
 
-	machineApi := utils.NewMachineApi(ctx, r.state)
+	machineApi := machineapi.NewMachineApi(ctx, r.state)
 
 	var newMachine machineapi.MachineResponse
 	err := machineApi.CreateMachine(createReq, data.App.ValueString(), &newMachine)
@@ -383,7 +382,7 @@ func (r *flyMachineResource) Read(ctx context.Context, req resource.ReadRequest,
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	machineApi := utils.NewMachineApi(ctx, r.state)
+	machineApi := machineapi.NewMachineApi(ctx, r.state)
 
 	var machine machineapi.MachineResponse
 
@@ -510,7 +509,7 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 		updateReq.Config.Mounts = mounts
 	}
 
-	machineApi := utils.NewMachineApi(ctx, r.state)
+	machineApi := machineapi.NewMachineApi(ctx, r.state)
 
 	var updatedMachine machineapi.MachineResponse
 
@@ -582,7 +581,7 @@ func (r *flyMachineResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	machineApi := utils.NewMachineApi(ctx, r.state)
+	machineApi := machineapi.NewMachineApi(ctx, r.state)
 
 	err := machineApi.DeleteMachine(data.App.ValueString(), data.Id.ValueString(), 50)
 	if err != nil {

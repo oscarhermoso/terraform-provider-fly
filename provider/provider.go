@@ -82,6 +82,9 @@ func (p *flyProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		GraphqlClient: graphql.NewClient("https://api.fly.io/graphql", &http.Client{
 			Timeout: 60 * time.Second,
 			Transport: &utils.GraphqlTransport{
+				Inner: &utils.LoggingHttpTransport{
+					Inner: http.DefaultTransport,
+				},
 				Token:            token,
 				EnableDebugTrace: enableTracing,
 			},

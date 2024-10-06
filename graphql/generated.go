@@ -286,48 +286,6 @@ func (v *CreateAppMutationResponse) GetCreateApp() CreateAppMutationCreateAppCre
 	return v.CreateApp
 }
 
-// CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayload includes the requested fields of the GraphQL type CreatePostgresClusterPayload.
-type CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayload struct {
-	App      CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayloadApp `json:"app"`
-	Username string                                                                    `json:"username"`
-	Password string                                                                    `json:"password"`
-}
-
-// GetApp returns CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayload.App, and is useful for accessing the field via an interface.
-func (v *CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayload) GetApp() CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayloadApp {
-	return v.App
-}
-
-// GetUsername returns CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayload.Username, and is useful for accessing the field via an interface.
-func (v *CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayload) GetUsername() string {
-	return v.Username
-}
-
-// GetPassword returns CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayload.Password, and is useful for accessing the field via an interface.
-func (v *CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayload) GetPassword() string {
-	return v.Password
-}
-
-// CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayloadApp includes the requested fields of the GraphQL type App.
-type CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayloadApp struct {
-	Name string `json:"name"`
-}
-
-// GetName returns CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayloadApp.Name, and is useful for accessing the field via an interface.
-func (v *CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayloadApp) GetName() string {
-	return v.Name
-}
-
-// CreatePostgresClusterResponse is returned by CreatePostgresCluster on success.
-type CreatePostgresClusterResponse struct {
-	CreatePostgresCluster CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayload `json:"createPostgresCluster"`
-}
-
-// GetCreatePostgresCluster returns CreatePostgresClusterResponse.CreatePostgresCluster, and is useful for accessing the field via an interface.
-func (v *CreatePostgresClusterResponse) GetCreatePostgresCluster() CreatePostgresClusterCreatePostgresClusterCreatePostgresClusterPayload {
-	return v.CreatePostgresCluster
-}
-
 // CreateVolumeCreateVolumeCreateVolumePayload includes the requested fields of the GraphQL type CreateVolumePayload.
 type CreateVolumeCreateVolumeCreateVolumePayload struct {
 	Volume CreateVolumeCreateVolumeCreateVolumePayloadVolume `json:"volume"`
@@ -960,9 +918,9 @@ type IPAddressType string
 
 const (
 	IPAddressTypeV4        IPAddressType = "v4"
-	IPAddressTypeSharedV4  IPAddressType = "shared_v4"
 	IPAddressTypeV6        IPAddressType = "v6"
 	IPAddressTypePrivateV6 IPAddressType = "private_v6"
+	IPAddressTypeSharedV4  IPAddressType = "shared_v4"
 )
 
 // IpAddressQueryApp includes the requested fields of the GraphQL type App.
@@ -1322,42 +1280,6 @@ func (v *__CreateAppMutationInput) GetName() string { return v.Name }
 // GetOrganizationId returns __CreateAppMutationInput.OrganizationId, and is useful for accessing the field via an interface.
 func (v *__CreateAppMutationInput) GetOrganizationId() string { return v.OrganizationId }
 
-// __CreatePostgresClusterInput is used internally by genqlient
-type __CreatePostgresClusterInput struct {
-	Name       string `json:"name"`
-	Orgid      string `json:"orgid"`
-	Region     string `json:"region"`
-	Password   string `json:"password"`
-	Vmsize     string `json:"vmsize"`
-	Volumesize int    `json:"volumesize"`
-	Count      int    `json:"count"`
-	Imageref   string `json:"imageref"`
-}
-
-// GetName returns __CreatePostgresClusterInput.Name, and is useful for accessing the field via an interface.
-func (v *__CreatePostgresClusterInput) GetName() string { return v.Name }
-
-// GetOrgid returns __CreatePostgresClusterInput.Orgid, and is useful for accessing the field via an interface.
-func (v *__CreatePostgresClusterInput) GetOrgid() string { return v.Orgid }
-
-// GetRegion returns __CreatePostgresClusterInput.Region, and is useful for accessing the field via an interface.
-func (v *__CreatePostgresClusterInput) GetRegion() string { return v.Region }
-
-// GetPassword returns __CreatePostgresClusterInput.Password, and is useful for accessing the field via an interface.
-func (v *__CreatePostgresClusterInput) GetPassword() string { return v.Password }
-
-// GetVmsize returns __CreatePostgresClusterInput.Vmsize, and is useful for accessing the field via an interface.
-func (v *__CreatePostgresClusterInput) GetVmsize() string { return v.Vmsize }
-
-// GetVolumesize returns __CreatePostgresClusterInput.Volumesize, and is useful for accessing the field via an interface.
-func (v *__CreatePostgresClusterInput) GetVolumesize() int { return v.Volumesize }
-
-// GetCount returns __CreatePostgresClusterInput.Count, and is useful for accessing the field via an interface.
-func (v *__CreatePostgresClusterInput) GetCount() int { return v.Count }
-
-// GetImageref returns __CreatePostgresClusterInput.Imageref, and is useful for accessing the field via an interface.
-func (v *__CreatePostgresClusterInput) GetImageref() string { return v.Imageref }
-
 // __CreateVolumeInput is used internally by genqlient
 type __CreateVolumeInput struct {
 	App    string `json:"app"`
@@ -1670,59 +1592,6 @@ func CreateAppMutation(
 	var err error
 
 	var data CreateAppMutationResponse
-	resp := &graphql.Response{Data: &data}
-
-	err = client.MakeRequest(
-		ctx,
-		req,
-		resp,
-	)
-
-	return &data, err
-}
-
-// The query or mutation executed by CreatePostgresCluster.
-const CreatePostgresCluster_Operation = `
-mutation CreatePostgresCluster ($name: String, $orgid: ID!, $region: String, $password: String, $vmsize: String, $volumesize: Int, $count: Int, $imageref: String) {
-	createPostgresCluster(input: {name:$name,organizationId:$orgid,region:$region,password:$password,vmSize:$vmsize,volumeSizeGb:$volumesize,count:$count,imageRef:$imageref}) {
-		app {
-			name
-		}
-		username
-		password
-	}
-}
-`
-
-func CreatePostgresCluster(
-	ctx context.Context,
-	client graphql.Client,
-	name string,
-	orgid string,
-	region string,
-	password string,
-	vmsize string,
-	volumesize int,
-	count int,
-	imageref string,
-) (*CreatePostgresClusterResponse, error) {
-	req := &graphql.Request{
-		OpName: "CreatePostgresCluster",
-		Query:  CreatePostgresCluster_Operation,
-		Variables: &__CreatePostgresClusterInput{
-			Name:       name,
-			Orgid:      orgid,
-			Region:     region,
-			Password:   password,
-			Vmsize:     vmsize,
-			Volumesize: volumesize,
-			Count:      count,
-			Imageref:   imageref,
-		},
-	}
-	var err error
-
-	var data CreatePostgresClusterResponse
 	resp := &graphql.Response{Data: &data}
 
 	err = client.MakeRequest(

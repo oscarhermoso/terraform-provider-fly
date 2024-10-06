@@ -7,12 +7,14 @@ import (
 
 	"github.com/andrewbaxter/terraform-provider-fly/machineapi"
 	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -42,6 +44,8 @@ func (r *flyMachineResource) Configure(_ context.Context, req resource.Configure
 
 type TfPort struct {
 	Port       types.Int64    `tfsdk:"port"`
+	StartPort  types.Int64    `tfsdk:"start_port"`
+	EndPort    types.Int64    `tfsdk:"end_port"`
 	Handlers   []types.String `tfsdk:"handlers"`
 	ForceHttps types.Bool     `tfsdk:"force_https"`
 }
@@ -182,8 +186,31 @@ func (r *flyMachineResource) Schema(_ context.Context, _ resource.SchemaRequest,
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
 									"port": schema.Int64Attribute{
-										MarkdownDescription: "Mapped external port number",
-										Required:            true,
+										MarkdownDescription: "Mapped external port number, either `port` or `start_port` and `end_port` must be set.",
+										Optional:            true,
+										Validators: []validator.Int64{
+											int64validator.Between(1, 65535),
+											int64validator.ConflictsWith(path.Expressions{path.MatchRelative().AtParent().AtName("start_port")}...),
+											int64validator.ConflictsWith(path.Expressions{path.MatchRelative().AtParent().AtName("end_port")}...),
+										},
+									},
+									"start_port": schema.Int64Attribute{
+										MarkdownDescription: "For a port range, the first port to listen on.",
+										Optional:            true,
+										Validators: []validator.Int64{
+											int64validator.Between(1, 65535),
+											int64validator.AlsoRequires(path.Expressions{path.MatchRelative().AtParent().AtName("end_port")}...),
+											int64validator.ConflictsWith(path.Expressions{path.MatchRelative().AtParent().AtName("port")}...),
+										},
+									},
+									"end_port": schema.Int64Attribute{
+										MarkdownDescription: "For a port range, the last port to listen on",
+										Optional:            true,
+										Validators: []validator.Int64{
+											int64validator.Between(1, 65535),
+											int64validator.AlsoRequires(path.Expressions{path.MatchRelative().AtParent().AtName("start_port")}...),
+											int64validator.ConflictsWith(path.Expressions{path.MatchRelative().AtParent().AtName("port")}...),
+										},
 									},
 									"handlers": schema.ListAttribute{
 										MarkdownDescription: "How the edge should process requests; ex empty, or `tls` to attach app's certificate",
@@ -223,11 +250,18 @@ func TfServicesToServices(input []TfService) []machineapi.Service {
 			for _, k := range j.Handlers {
 				handlers = append(handlers, k.ValueString())
 			}
-			ports = append(ports, machineapi.Port{
-				Port:       j.Port.ValueInt64(),
+			port := machineapi.Port{
 				Handlers:   handlers,
 				ForceHttps: j.ForceHttps.ValueBool(),
-			})
+			}
+			portValue := j.Port.ValueInt64Pointer()
+			if portValue != nil {
+				port.Port = portValue
+			} else {
+				port.StartPort = j.StartPort.ValueInt64Pointer()
+				port.EndPort = j.EndPort.ValueInt64Pointer()
+			}
+			ports = append(ports, port)
 		}
 		services = append(services, machineapi.Service{
 			Ports:        ports,
@@ -248,9 +282,11 @@ func ServicesToTfServices(input []machineapi.Service) []TfService {
 				handlers = append(handlers, types.StringValue(k))
 			}
 			tfports = append(tfports, TfPort{
-				Port:       types.Int64Value(j.Port),
+				Port:       types.Int64PointerValue(j.Port),
 				Handlers:   handlers,
 				ForceHttps: types.BoolValue(j.ForceHttps),
+				StartPort:  types.Int64PointerValue(j.StartPort),
+				EndPort:    types.Int64PointerValue(j.EndPort),
 			})
 		}
 		tfservices = append(tfservices, TfService{

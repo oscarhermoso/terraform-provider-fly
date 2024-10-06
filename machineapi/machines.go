@@ -30,7 +30,9 @@ type MachineMount struct {
 }
 
 type Port struct {
-	Port       int64    `json:"port"`
+	Port       *int64   `json:"port"`
+	StartPort  *int64   `json:"start_port"`
+	EndPort    *int64   `json:"end_port"`
 	Handlers   []string `json:"handlers"`
 	ForceHttps bool     `json:"force_https"`
 }

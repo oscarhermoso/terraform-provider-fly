@@ -207,36 +207,6 @@ mutation DeleteCertificate($app: ID!, $hostname: String!) {
   }
 }
 
-mutation CreatePostgresCluster(
-  $name: String
-  $orgid: ID!
-  $region: String
-  $password: String
-  $vmsize: String
-  $volumesize: Int
-  $count: Int
-  $imageref: String
-) {
-  createPostgresCluster(
-    input: {
-      name: $name
-      organizationId: $orgid
-      region: $region
-      password: $password
-      vmSize: $vmsize
-      volumeSizeGb: $volumesize
-      count: $count
-      imageRef: $imageref
-    }
-  ) {
-    app {
-      name
-    }
-    username
-    password
-  }
-}
-
 mutation AddWireguardPeer($input: AddWireGuardPeerInput!) {
   addWireGuardPeer(input: $input) {
     network

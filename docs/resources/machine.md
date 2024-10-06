@@ -61,11 +61,10 @@ Required:
 <a id="nestedatt--services--ports"></a>
 ### Nested Schema for `services.ports`
 
-Required:
-
-- `port` (Number) Mapped external port number
-
 Optional:
 
+- `end_port` (Number) For a port range, the last port to listen on
 - `force_https` (Boolean) Automatically redirect to HTTPS on "http" handler
 - `handlers` (List of String) How the edge should process requests; ex empty, or `tls` to attach app's certificate
+- `port` (Number) Mapped external port number, either `port` or `start_port` and `end_port` must be set.
+- `start_port` (Number) For a port range, the first port to listen on.

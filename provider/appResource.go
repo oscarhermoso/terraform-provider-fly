@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"time"
 
 	"github.com/andrewbaxter/terraform-provider-fly/graphql"
 	"github.com/andrewbaxter/terraform-provider-fly/providerstate"
@@ -129,6 +130,19 @@ func (r *flyAppResource) Create(ctx context.Context, req resource.CreateRequest,
 	data.OrgId = types.StringValue(mresp.CreateApp.App.Organization.Id)
 	data.AppUrl = types.StringValue(mresp.CreateApp.App.AppUrl)
 	data.Id = types.StringValue(mresp.CreateApp.App.Id)
+
+	err = utils.Retry(ctx, time.Minute*5, time.Second*5, func() (temporaryErr error, finalErr error) {
+		name := data.Name.ValueString()
+		_, err := graphql.GetFullApp(ctx, r.state.GraphqlClient, name)
+		if err != nil {
+			return err, nil
+		}
+		return nil, nil
+	})
+	if err != nil {
+		resp.Diagnostics.AddError("Consistency error; upstream API never successfully responded to request for newly created app", err.Error())
+		return
+	}
 
 	if data.AssignSharedIpAddress.ValueBool() {
 		mresp2, err := graphql.AllocateIpAddress(ctx, r.state.GraphqlClient, name, "global", "shared_v4")

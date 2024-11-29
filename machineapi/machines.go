@@ -49,8 +49,12 @@ type InitConfig struct {
 	Exec       []string `json:"exec,omitempty"`
 }
 
+type MachineBuild struct {
+	Image string `json:"image"`
+}
+
 type MachineConfig struct {
-	Image       string            `json:"image"`
+	Build       MachineBuild      `json:"build"`
 	Env         map[string]string `json:"env"`
 	Init        InitConfig        `json:"init,omitempty"`
 	Mounts      []MachineMount    `json:"mounts,omitempty"`
@@ -86,7 +90,9 @@ type MachineResponse struct {
 			Cmd        []string `json:"cmd"`
 			//Tty        bool        `json:"tty"`
 		} `json:"init"`
-		Image    string      `json:"image"`
+		Build struct {
+			Image *string `json:"image"`
+		} `json:"build"`
 		Metadata interface{} `json:"metadata"`
 		Restart  struct {
 			Policy string `json:"policy"`

@@ -312,7 +312,9 @@ func (r *flyMachineResource) Create(ctx context.Context, req resource.CreateRequ
 		Name:   data.Name.ValueString(),
 		Region: data.Region.ValueString(),
 		Config: machineapi.MachineConfig{
-			Image:    data.Image.ValueString(),
+			Build: machineapi.MachineBuild{
+				Image: data.Image.ValueString(),
+			},
 			Services: services,
 			Init: machineapi.InitConfig{
 				Cmd:        data.Cmd,
@@ -376,7 +378,7 @@ func (r *flyMachineResource) Create(ctx context.Context, req resource.CreateRequ
 		Id:          types.StringValue(newMachine.ID),
 		App:         data.App,
 		PrivateIP:   types.StringValue(newMachine.PrivateIP),
-		Image:       types.StringValue(newMachine.Config.Image),
+		Image:       types.StringPointerValue(newMachine.Config.Build.Image),
 		Cpus:        types.Int64Value(int64(newMachine.Config.Guest.Cpus)),
 		MemoryMb:    types.Int64Value(int64(newMachine.Config.Guest.MemoryMb)),
 		CpuType:     types.StringValue(newMachine.Config.Guest.CPUKind),
@@ -444,7 +446,7 @@ func (r *flyMachineResource) Read(ctx context.Context, req resource.ReadRequest,
 		Region:      types.StringValue(machine.Region),
 		App:         data.App,
 		PrivateIP:   types.StringValue(machine.PrivateIP),
-		Image:       types.StringValue(machine.Config.Image),
+		Image:       types.StringPointerValue(machine.Config.Build.Image),
 		Cpus:        types.Int64Value(int64(machine.Config.Guest.Cpus)),
 		MemoryMb:    types.Int64Value(int64(machine.Config.Guest.MemoryMb)),
 		CpuType:     types.StringValue(machine.Config.Guest.CPUKind),
@@ -503,7 +505,9 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 		Name:   plan.Name.ValueString(),
 		Region: state.Region.ValueString(),
 		Config: machineapi.MachineConfig{
-			Image:    plan.Image.ValueString(),
+			Build: machineapi.MachineBuild{
+				Image: plan.Image.ValueString(),
+			},
 			Services: services,
 			Init: machineapi.InitConfig{
 				Cmd:        plan.Cmd,
@@ -574,7 +578,7 @@ func (r *flyMachineResource) Update(ctx context.Context, req resource.UpdateRequ
 		Id:          types.StringValue(updatedMachine.ID),
 		App:         state.App,
 		PrivateIP:   types.StringValue(updatedMachine.PrivateIP),
-		Image:       types.StringValue(updatedMachine.Config.Image),
+		Image:       types.StringPointerValue(updatedMachine.Config.Build.Image),
 		Cpus:        types.Int64Value(int64(updatedMachine.Config.Guest.Cpus)),
 		MemoryMb:    types.Int64Value(int64(updatedMachine.Config.Guest.MemoryMb)),
 		CpuType:     types.StringValue(updatedMachine.Config.Guest.CPUKind),
